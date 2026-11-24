@@ -1,0 +1,15 @@
+import ../config.js
+
+function load minecraft:load {
+    scoreboard objectives add xpeco.account dummy
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.account
+}
+
+function assign {
+    # Stable per-name account number so a request can name its sender without a UUID
+    scoreboard players add #next xpeco.cfg 1
+    scoreboard players operation @s xpeco.account = #next xpeco.cfg
+}

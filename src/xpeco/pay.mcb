@@ -1,0 +1,48 @@
+import ../config.js
+
+# /trigger xpeco.pay set <amount> while looking at the target player
+function load minecraft:load {
+    scoreboard objectives add xpeco.pay trigger
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.pay
+}
+
+function run {
+    # As and at the payer; the trigger score is the amount
+    scoreboard players operation #amt xpeco.tmp = @s xpeco.pay
+    scoreboard players set @s xpeco.pay 0
+    function xpeco:target/find
+    execute unless entity @a[tag=xpeco.target] run return run tellraw @s {translate:"xpeco.pay.notarget",fallback:"Look at the player you want to pay."}
+    function xpeco:pay/transfer
+    tag @a remove xpeco.target
+}
+
+function transfer {
+    # As the payer, with the receiver tagged xpeco.target and #amt set. Overpay is blocked here, before anything moves.
+    function xpeco:total/compute
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s {translate:"xpeco.pay.insufficient",fallback:"Not enough experience."}
+    execute store result storage xpeco:tmp amount int 1 run scoreboard players get #amt xpeco.tmp
+    function xpeco:pay/move with storage xpeco:tmp
+    tellraw @s {translate:"xpeco.pay.sent",fallback:"Paid %s %s points.",with:[{selector:"@a[tag=xpeco.target,limit=1]"},{score:{name:"#amt",objective:"xpeco.tmp"}}]}
+    tellraw @a[tag=xpeco.target,limit=1] {translate:"xpeco.pay.received",fallback:"%s paid you %s points.",with:[{selector:"@s"},{score:{name:"#amt",objective:"xpeco.tmp"}}]}
+}
+
+function move {
+    $experience add @s -$(amount) points
+    $experience add @a[tag=xpeco.target,limit=1] $(amount) points
+}
+
+# Pays a player by name, online or not. Needs permission level 2 for /function, so ops only.
+# Usage: /function xpeco:pay/to_name {to:"Name",amount:5}
+function to_name {
+    # Credit goes through the pending ledger, so online and offline targets take the same path.
+    $scoreboard players set #amt xpeco.tmp $(amount)
+    function xpeco:total/compute
+    execute if score #amt xpeco.tmp matches ..0 run return run tellraw @s {text:"Amount must be positive."}
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s {text:"Not enough experience."}
+    $experience add @s -$(amount) points
+    $scoreboard players add $(to) xpeco.pending $(amount)
+    $tellraw @s {text:"Paid $(to) $(amount) points."}
+}

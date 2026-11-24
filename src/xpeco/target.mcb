@@ -1,0 +1,61 @@
+import ../config.js
+
+# Blocks the look-at ray passes through: replaceable plants, fluids and fire, flowers, crops, signs, rails and
+# other small or hollow blocks. Anything not listed, glass included, stops the ray. Add entries here if one is missing.
+tag blocks ray_pass {
+    #minecraft:replaceable
+    #minecraft:small_flowers
+    minecraft:sunflower
+    minecraft:lilac
+    minecraft:rose_bush
+    minecraft:peony
+    #minecraft:crops
+    #minecraft:saplings
+    #minecraft:signs
+    #minecraft:wall_signs
+    #minecraft:rails
+    #minecraft:buttons
+    #minecraft:pressure_plates
+    minecraft:lever
+    minecraft:torch
+    minecraft:wall_torch
+    minecraft:soul_torch
+    minecraft:soul_wall_torch
+    minecraft:redstone_torch
+    minecraft:redstone_wall_torch
+    minecraft:redstone_wire
+    minecraft:sugar_cane
+    minecraft:nether_wart
+    minecraft:sweet_berry_bush
+    minecraft:cocoa
+    minecraft:cobweb
+    minecraft:tripwire
+    minecraft:tripwire_hook
+    minecraft:twisting_vines
+    minecraft:twisting_vines_plant
+    minecraft:weeping_vines
+    minecraft:weeping_vines_plant
+    minecraft:attached_melon_stem
+    minecraft:attached_pumpkin_stem
+}
+
+function find {
+    # As and at a player. Tags the first other player on the eye ray, up to rayStepCount * 0.25 blocks, with xpeco.target
+    tag @a remove xpeco.target
+    tag @s add xpeco.self
+    scoreboard players set #steps xpeco.tmp <%config.rayStepCount%>
+    execute anchored eyes positioned ^ ^ ^ run function xpeco:target/ray
+    tag @s remove xpeco.self
+}
+
+function ray {
+    # Walks the eye ray in 0.25 block steps. Passes through blocks in #xpeco:target/ray_pass, such as air, grass and flowers. Stops at any other block, a hit, or when steps run out.
+    execute as @a[tag=!xpeco.self,tag=!xpeco.target,dx=0,dy=0,dz=0,limit=1,sort=nearest] run tag @s add xpeco.target
+    scoreboard players remove #steps xpeco.tmp 1
+    execute unless entity @a[tag=xpeco.target] if score #steps xpeco.tmp matches 1.. if block ~ ~ ~ #xpeco:target/ray_pass positioned ^ ^ ^0.25 run function xpeco:target/ray
+}
+
+function on_uninstall xpeco:on_uninstall {
+    tag @a remove xpeco.self
+    tag @a remove xpeco.target
+}

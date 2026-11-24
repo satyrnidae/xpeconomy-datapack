@@ -1,0 +1,10 @@
+{
+  "mc": {
+    "header": "# Experience Economy datapack prototype\n# Built using mc-build (https://github.com/mc-build/mc-build)",
+    "version": "0.1.0-prototype",
+    "mc_version": "26.3",
+    "expireTicks": 600,
+    "rayStepCount": 20,
+    "packName": "xpeconomy-dp"
+  }
+}

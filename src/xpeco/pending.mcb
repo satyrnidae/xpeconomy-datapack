@@ -1,0 +1,20 @@
+import ../config.js
+
+function load minecraft:load {
+    scoreboard objectives add xpeco.pending dummy
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.pending
+}
+
+function apply {
+    # As a player with a non-zero pending score
+    execute store result storage xpeco:tmp amount int 1 run scoreboard players get @s xpeco.pending
+    function xpeco:pending/apply_macro with storage xpeco:tmp
+    scoreboard players set @s xpeco.pending 0
+}
+
+function apply_macro {
+    $experience add @s $(amount) points
+}

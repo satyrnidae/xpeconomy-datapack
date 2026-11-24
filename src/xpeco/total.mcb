@@ -1,0 +1,56 @@
+import ../config.js
+
+function load minecraft:load {
+    scoreboard objectives add xpeco.lvl dummy
+    scoreboard objectives add xpeco.pts dummy
+    scoreboard objectives add xpeco.total dummy
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.lvl
+    scoreboard objectives remove xpeco.pts
+    scoreboard objectives remove xpeco.total
+}
+
+function compute {
+    # Raw point total into @s xpeco.total, from level and progress points
+    execute store result score @s xpeco.lvl run experience query @s levels
+    execute store result score @s xpeco.pts run experience query @s points
+    execute if score @s xpeco.lvl matches ..16 run function xpeco:total/low
+    execute if score @s xpeco.lvl matches 17..31 run function xpeco:total/mid
+    execute if score @s xpeco.lvl matches 32.. run function xpeco:total/high
+    scoreboard players operation @s xpeco.total += @s xpeco.pts
+}
+
+function high {
+    # (9L^2 - 325L + 4440) / 2
+    scoreboard players operation @s xpeco.total = @s xpeco.lvl
+    scoreboard players operation @s xpeco.total *= @s xpeco.lvl
+    scoreboard players operation @s xpeco.total *= #9 xpeco.tmp
+    scoreboard players operation #a xpeco.tmp = @s xpeco.lvl
+    scoreboard players operation #a xpeco.tmp *= #325 xpeco.tmp
+    scoreboard players operation @s xpeco.total -= #a xpeco.tmp
+    scoreboard players operation @s xpeco.total += #4440 xpeco.tmp
+    scoreboard players operation @s xpeco.total /= #2 xpeco.tmp
+}
+
+function low {
+    # L^2 + 6L
+    scoreboard players operation @s xpeco.total = @s xpeco.lvl
+    scoreboard players operation @s xpeco.total *= @s xpeco.lvl
+    scoreboard players operation #a xpeco.tmp = @s xpeco.lvl
+    scoreboard players operation #a xpeco.tmp *= #6 xpeco.tmp
+    scoreboard players operation @s xpeco.total += #a xpeco.tmp
+}
+
+function mid {
+    # (5L^2 - 81L + 720) / 2
+    scoreboard players operation @s xpeco.total = @s xpeco.lvl
+    scoreboard players operation @s xpeco.total *= @s xpeco.lvl
+    scoreboard players operation @s xpeco.total *= #5 xpeco.tmp
+    scoreboard players operation #a xpeco.tmp = @s xpeco.lvl
+    scoreboard players operation #a xpeco.tmp *= #81 xpeco.tmp
+    scoreboard players operation @s xpeco.total -= #a xpeco.tmp
+    scoreboard players operation @s xpeco.total += #720 xpeco.tmp
+    scoreboard players operation @s xpeco.total /= #2 xpeco.tmp
+}

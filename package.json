@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "dependencies": {
+    "mc-build": "4.2.0"
+  },
+  "scripts": {
+    "build": "mcb build",
+    "watch": "mcb watch",
+    "check": "node src/scripts/check_formula.mjs && node src/scripts/check_uninstall.mjs"
+  }
+}

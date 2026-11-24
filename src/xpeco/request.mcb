@@ -1,0 +1,41 @@
+import ../config.js
+
+function load minecraft:load {
+    scoreboard objectives add xpeco.req.from dummy
+    scoreboard objectives add xpeco.req.amt dummy
+    scoreboard objectives add xpeco.req.at dummy
+    scoreboard objectives add xpeco.request trigger
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.req.from
+    scoreboard objectives remove xpeco.req.amt
+    scoreboard objectives remove xpeco.req.at
+    scoreboard objectives remove xpeco.request
+}
+
+function run {
+    # As and at the requester; the trigger score is the amount. One pending request per target, a new one replaces it.
+    scoreboard players operation #amt xpeco.tmp = @s xpeco.request
+    scoreboard players set @s xpeco.request 0
+    function xpeco:target/find
+    execute unless entity @a[tag=xpeco.target] run return run tellraw @s {translate:"xpeco.request.notarget",fallback:"Look at the player you want to ask."}
+    scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.from = @s xpeco.account
+    scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.amt = #amt xpeco.tmp
+    execute store result score @a[tag=xpeco.target,limit=1] xpeco.req.at run time query gametime
+    tellraw @a[tag=xpeco.target,limit=1] [{translate:"xpeco.request.received",fallback:"%s requests %s points. ",with:[{selector:"@s"},{score:{name:"#amt",objective:"xpeco.tmp"}}]},{text:"[Pay]",color:"green",click_event:{action:"run_command",command:"/trigger xpeco.reply set 1"},hover_event:{action:"show_text",value:{text:"Pay the requested amount"}}},{text:" "},{text:"[Decline]",color:"red",click_event:{action:"run_command",command:"/trigger xpeco.reply set 2"},hover_event:{action:"show_text",value:{text:"Refuse the request"}}}]
+    tellraw @s {translate:"xpeco.request.sent",fallback:"Requested %s points from %s.",with:[{score:{name:"#amt",objective:"xpeco.tmp"}},{selector:"@a[tag=xpeco.target,limit=1]"}]}
+    tag @a remove xpeco.target
+}
+
+function check_expiry {
+    # As a player holding a pending request. #now is the current game time.
+    scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
+    scoreboard players operation #age xpeco.tmp -= @s xpeco.req.at
+    execute if score #age xpeco.tmp < #expire xpeco.cfg run return 0
+
+    scoreboard players operation #from xpeco.tmp = @s xpeco.req.from
+    scoreboard players set @s xpeco.req.amt 0
+    tellraw @s {translate:"xpeco.request.expired",fallback:"The request expired."}
+    execute as @a if score @s xpeco.account = #from xpeco.tmp run tellraw @s {translate:"xpeco.request.expired.sender",fallback:"Your request expired."}
+}

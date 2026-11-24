@@ -1,0 +1,28 @@
+import ../config.js
+
+# /trigger xpeco.balance
+function load minecraft:load {
+    scoreboard objectives add xpeco.balance trigger
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.balance
+}
+
+function run {
+    # Run as the player who fired the trigger
+    scoreboard players set @s xpeco.balance 0
+    function xpeco:total/compute
+    execute if score #mode xpeco.cfg matches 0 run tellraw @s {translate:"xpeco.balance.points",fallback:"Balance: %s points",with:[{score:{name:"@s",objective:"xpeco.total"}}]}
+    execute if score #mode xpeco.cfg matches 1 run tellraw @s {translate:"xpeco.balance.levels",fallback:"Balance: %s levels",with:[{score:{name:"@s",objective:"xpeco.lvl"}}]}
+    execute if score #mode xpeco.cfg matches 2 run function xpeco:balance/hundred
+}
+
+function hundred {
+    scoreboard players operation #w xpeco.tmp = @s xpeco.total
+    scoreboard players operation #w xpeco.tmp /= #100 xpeco.tmp
+    scoreboard players operation #f xpeco.tmp = @s xpeco.total
+    scoreboard players operation #f xpeco.tmp %= #100 xpeco.tmp
+    execute if score #f xpeco.tmp matches ..9 run tellraw @s {translate:"xpeco.balance.hundred",fallback:"Balance: %s.0%s hundreds",with:[{score:{name:"#w",objective:"xpeco.tmp"}},{score:{name:"#f",objective:"xpeco.tmp"}}]}
+    execute if score #f xpeco.tmp matches 10.. run tellraw @s {translate:"xpeco.balance.hundred",fallback:"Balance: %s.%s hundreds",with:[{score:{name:"#w",objective:"xpeco.tmp"}},{score:{name:"#f",objective:"xpeco.tmp"}}]}
+}
