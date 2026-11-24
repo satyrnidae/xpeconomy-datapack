@@ -5,6 +5,8 @@
     "mc_version": "26.3",
     "expireTicks": 600,
     "rayStepCount": 20,
-    "packName": "xpeconomy-dp"
+    "packName": "xpeconomy-dp",
+    "bottlePoints": 7,
+    "bottleReachSteps": 13
   }
 }

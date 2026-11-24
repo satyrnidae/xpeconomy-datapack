@@ -18,3 +18,9 @@ function apply {
 function apply_macro {
     $experience add @s $(amount) points
 }
+
+function tick minecraft:tick {
+    # Offline ledger: holder is the player name, so an online player's own score is the same entry
+    execute as @a[scores={xpeco.pending=1..}] run function xpeco:pending/apply
+    execute as @a[scores={xpeco.pending=..-1}] run function xpeco:pending/apply
+}

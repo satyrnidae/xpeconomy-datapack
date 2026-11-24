@@ -13,3 +13,7 @@ function assign {
     scoreboard players add #next xpeco.cfg 1
     scoreboard players operation @s xpeco.account = #next xpeco.cfg
 }
+
+function tick minecraft:tick {
+    execute as @a unless score @s xpeco.account = @s xpeco.account run function xpeco:account/assign
+}

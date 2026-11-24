@@ -1,32 +1,52 @@
 import ../config.js
 
-# The target answers with the chat buttons, which run /trigger xpeco.reply set 1 (pay) or 2 (decline).
+# The target answers with the chat buttons, which run /trigger accept_charges (Pay) or /trigger decline_payment (Decline).
 function load minecraft:load {
-    scoreboard objectives add xpeco.reply trigger
+    scoreboard objectives add accept_charges trigger
+    scoreboard objectives add decline_payment trigger
 }
 
 function on_uninstall xpeco:on_uninstall {
-    scoreboard objectives remove xpeco.reply
+    scoreboard objectives remove accept_charges
+    scoreboard objectives remove decline_payment
 }
 
-function run {
-    # As the player who clicked Pay (1) or Decline (2)
-    scoreboard players operation #r xpeco.tmp = @s xpeco.reply
-    scoreboard players set @s xpeco.reply 0
+function resolve {
+    # As the player who answered. Leaves the requester tagged xpeco.target, with #amt set, or says why not and tags nobody.
     execute if score @s xpeco.req.amt matches ..0 run return run tellraw @s {translate:"xpeco.request.none",fallback:"No pending request."}
     scoreboard players operation #amt xpeco.tmp = @s xpeco.req.amt
     scoreboard players operation #from xpeco.tmp = @s xpeco.req.from
     scoreboard players set @s xpeco.req.amt 0
     tag @a remove xpeco.target
     execute as @a if score @s xpeco.account = #from xpeco.tmp run tag @s add xpeco.target
-    execute unless entity @a[tag=xpeco.target] run return run tellraw @s {translate:"xpeco.request.gone",fallback:"The requester is not online."}
-    execute if score #r xpeco.tmp matches 2 run return run function xpeco:reply/decline
-    execute if score #r xpeco.tmp matches 1 run function xpeco:pay/transfer
+    execute unless entity @a[tag=xpeco.target] run tellraw @s {translate:"xpeco.request.gone",fallback:"The requester is not online."}
+}
+
+function accept {
+    # As the player who clicked Pay. Answering both at once counts as accepting.
+    scoreboard players set @s accept_charges 0
+    scoreboard players set @s decline_payment 0
+    function xpeco:reply/resolve
+    execute unless entity @a[tag=xpeco.target] run return 0
+    function xpeco:pay/transfer
     tag @a remove xpeco.target
 }
 
 function decline {
+    # As the player who clicked Decline
+    scoreboard players set @s decline_payment 0
+    function xpeco:reply/resolve
+    execute unless entity @a[tag=xpeco.target] run return 0
     tellraw @a[tag=xpeco.target,limit=1] {translate:"xpeco.request.declined",fallback:"%s declined your request.",with:[{selector:"@s"}]}
     tellraw @s {translate:"xpeco.request.declined.self",fallback:"Request declined."}
     tag @a remove xpeco.target
+}
+
+function tick minecraft:tick {
+    scoreboard players enable @a accept_charges
+    scoreboard players enable @a decline_payment
+    execute as @a[scores={accept_charges=1..}] run function xpeco:reply/accept
+    execute as @a[scores={decline_payment=1..}] run function xpeco:reply/decline
+    scoreboard players set @a[scores={accept_charges=..0}] accept_charges 0
+    scoreboard players set @a[scores={decline_payment=..0}] decline_payment 0
 }

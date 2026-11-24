@@ -17,8 +17,13 @@ const grab = (re, onlyUninstall) => new Set(all.filter((x) => !!onlyUninstall ==
 
 const added = grab(/objectives add (\S+)/, false);
 const removed = grab(/objectives remove (\S+)/, true);
-const tagsAdded = grab(/\btag @\S+ add (\S+)/, false);
-const tagsRemoved = grab(/\btag @\S+ remove (\S+)/, true);
+// A tag removed again in the function that adds it is transient. A kill of tagged entities in uninstall counts as removal.
+const tagOf = (re, l) => l.match(re)?.[1];
+const transient = new Set(
+  files.flatMap((f) => f.lines.map((l) => tagOf(/\btag @\S+ remove (\S+)/, l)).filter((t) => t && f.lines.some((l) => tagOf(/\btag @\S+ add (\S+)/, l) === t))),
+);
+const tagsAdded = new Set([...grab(/\btag @\S+ add (\S+)/, false)].filter((t) => !transient.has(t)));
+const tagsRemoved = new Set([...grab(/\btag @\S+ remove (\S+)/, true), ...grab(/\bkill @e\[.*\btag=([^,\]]+)/, true)]);
 
 const missing = [
   ...[...added].filter((o) => !removed.has(o)).map((o) => 'objective ' + o),

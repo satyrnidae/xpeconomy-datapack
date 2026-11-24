@@ -75,7 +75,7 @@ Core problem: `/function` needs permission level 2, so ordinary players cannot c
 
 Workable patterns, in order of preference:
 
-0. Look-at pay. `/trigger xpeco.pay set <amount>` while looking at the target. A function raycasts from the payer's eyes in 0.25 block steps up to 5 blocks, stops at the first block not in `#xpeco:target/ray_pass`, and tags the first other player whose hitbox it enters. No target argument, no dialog. Online targets only; offline pay stays an op tool via `pay/to_name`. Same idea can serve `balance` for another player. Prototyped in `pay/run`, static checks only.
+0. Look-at pay. `/trigger pay set <amount>` while looking at the target. A function raycasts from the payer's eyes in 0.25 block steps up to 5 blocks, stops at the first block not in `#xpeco:target/ray_pass`, and tags the first other player whose hitbox it enters. No target argument, no dialog. Online targets only; offline pay stays an op tool via `pay/to_name`. Same idea can serve `balance` for another player. Prototyped in `pay/run`, static checks only.
 1. Dialogs. A tick function sees a trigger score, then runs `dialog show` for that player with a macro-built dialog. Number input for amount, single-option list of online players for target. The dialog's run-command action can then call `trigger` with integers. Not a full replacement for typed arguments and only lists online players. VERIFY dialog action semantics and what permission the dialog's command runs under in 26.3.
 2. Clickable `tellraw` menus. Same flow without dialogs; clunkier.
 3. Fixed-step triggers. `/trigger xpe_pay set <amount>` then `/trigger xpe_pay_to set <n>` where `n` indexes a printed online-player list. Works, ugly.
@@ -116,14 +116,14 @@ Plugin cancels interact events, overrides `ExpBottleEvent.setExperience`, and de
 
 ## Prototype 1 results
 
-Pack: project root, format 121, namespace `xpeco`. Sources are mc-build `.mcb` under `src/`, built with `npm run build` into `data/`, which is generated output. `config.json` feeds `expireTicks` and `rayStepCount` into the sources. Build output was diffed against the original hand-written functions, ignoring comments, and matched for all 21 functions. Static checks, formula check:  `node src/scripts/check_formula.mjs`.
+Pack: project root, format 121, namespace `xpeco`. Sources are mc-build `.mcb` under `src/`, built with `npm run build` into `data/`. `data/` is gitignored and holds only mc-build output, functions, tags, the advancement and the predicate included; a clean delete and rebuild reproduces it byte for byte. `config.json` feeds `expireTicks` and `rayStepCount` into the sources. Build output was diffed against the original hand-written functions, ignoring comments, and matched for all 21 functions. Static checks, formula check:  `node src/scripts/check_formula.mjs`.
 
 Contents:
-- `trigger xpeco.balance` -> `balance/run`, prints total in the configured mode with `translate` plus `fallback`, so no resource pack.
+- `trigger balance` -> `balance/run`, prints total in the configured mode with `translate` plus `fallback`, so no resource pack.
 - `total/compute`: level and progress points -> raw total, three integer branches matching the plugin formulas.
 - Offline ledger: `xpeco.pending`, holder is the player name. An online player's own score is the same entry, so `scoreboard players add <name>` works for offline and online targets alike, and `tick` applies it with a macro `experience add`. No join detection needed.
 - `pay/to_name {to,amount}`: balance check, withdraw, credit through the ledger. Op only.
-- `trigger xpeco.pay`: look-at pay for everyone, see Commands.
+- `trigger pay`: look-at pay for everyone, see Commands.
 
 Checked, statically:
 - All 65 plain commands parse with the 26.3 command dispatcher. Macro lines were parsed with sample values substituted.
@@ -153,7 +153,7 @@ Added `pay/run`, `target/ray`, `pay/move`. Parses and loads under 26.3, same sta
 
 ## Prototype 1c: payment requests
 
-`/trigger xpeco.request set <amount>` while looking at a player. The target gets a chat line with [Pay] and [Decline]; the buttons run `/trigger xpeco.reply set 1` or `set 2`, which any player may use, so no op level is involved. Pay sends points to the requester from the clicker through the same `pay/transfer` as look-at pay, so the overpay check is shared.
+`/trigger request set <amount>` while looking at a player. The target gets a chat line with [Pay] and [Decline]; the buttons run `/trigger accept_charges` and `/trigger decline_payment`, which any player may use, so no op level is involved. Pay sends points to the requester from the clicker through the same `pay/transfer` as look-at pay, so the overpay check is shared.
 
 Pieces: `request/run`, `reply/run`, `reply/decline`, `target/find`, `pay/transfer`, `account/assign`.
 
@@ -161,7 +161,7 @@ Design notes:
 - The request lives on the target as two scores, `xpeco.req.amt` and `xpeco.req.from`. The sender is a per-name integer account number from `xpeco.account`, so the click carries no name and nothing needs macros.
 - One pending request per target; a new one replaces it. Requests expire after 600 ticks, 30 seconds, set by `#expire` in `xpeco.cfg`. The request stores `time query gametime` in `xpeco.req.at`, and `tick` runs `request/check_expiry` for every player with a pending request; it clears the request and tells both sides if online. Cost is one score compare per pending request per tick.
 - Pay needs the requester online. If they left, the target is told and the request is cleared.
-- The reply trigger is always enabled, so stray `/trigger xpeco.reply` with nothing pending prints "No pending request."
+- The accept_charges and decline_payment triggers are always enabled, so a stray use with nothing pending prints "No pending request."
 
 Same static checks as above, 127 commands parsed, pack loads. Untested in a world:
 - Whether 26.3 shows a confirmation before a chat `run_command` click runs. VERIFY. If it does, the flow still works with one extra click.
@@ -177,4 +177,28 @@ Objective definitions now live beside the functions that use them. Each `.mcb` f
 
 Known gap: tags on offline players survive an uninstall. `xpeco.self` and `xpeco.target` are removed within the same function that sets them, so this should not arise in practice.
 
-Layout after the split: one `.mcb` per feature under `src/xpeco/`: `balance`, `pay`, `request`, `reply`, `target` for the raycast, `account`, `pending` and `total`. `src/xpeco.mcb` keeps only the shared `load`, `tick` and `uninstall`. The op-only offline pay is `pay/to_name`, in `pay.mcb` with the other pay functions.
+Layout after the split: one `.mcb` per feature under `src/xpeco/`: `balance`, `pay`, `request`, `reply`, `target` for the raycast, `account`, `pending` and `total`. `src/xpeco.mcb` keeps only the shared `load` and `uninstall`. Each feature file defines its own `tick` and registers it in `minecraft:tick`, so the tick body is split by domain; the tag runs them in alphabetical order, which nothing depends on. The op-only offline pay is `pay/to_name`, in `pay.mcb` with the other pay functions.
+
+## Prototype 2: XP bottle fill
+
+`bottle.mcb`, config in `config.json`: `bottlePoints` 7, `bottleReachSteps` 13.
+
+Checked against the 26.3 bytecode, not just the wiki:
+- A plain click on a table fires `default_block_use` after the menu opens, so the menu cannot be cancelled from a block trigger.
+- Sneaking with an item in hand skips block interaction in `ServerPlayerGameMode.useItemOn`, so no block trigger fires on a sneak-click either.
+
+Implementation: interaction entity over the table. Each tick, a player who is sneaking with a glass bottle in the main hand ray-casts along the eye line. On reaching an enchanting table within reach, an `interaction` entity tagged `xpeco.bottle.table` is summoned over the table, 1.1 wide and 0.85 tall so it wins the pick over the block. Right-clicking it fires `player_interacted_with_entity`, whose advancement `bottle/on_interact` rewards `bottle/fill`. The table menu never opens because the click goes to the entity. When no qualifying player is within 6 blocks, the entity is killed.
+
+Reach is the entity interaction range, 3 blocks, so `bottleReachSteps` of 13 at 0.25 per step covers it. Side effects while the entity exists: the table cannot be broken, and other players near it get the entity click instead of the menu.
+
+`fill` checks the balance, takes `bottlePoints`, consumes one glass bottle and gives an experience bottle. A full inventory drops it. Creative players skip the balance check, the deduction and the bottle use. Uninstall kills the entities and revokes the advancement.
+
+Fixed return on throw: `fill` hands out the bottle with `loot give`. Loot table `bottle/filled` is one `experience_bottle` plus a root `"modifier": "xpeco:bottle/filled"`, the item modifier that sets `item_name` "Filled Bottle o' Enchanting", rarity common and custom_data `"xpeco:player_filled":1b`, the last through `set_custom_data` so the flag stays a byte. A loot table applies an item modifier through that root `modifier` key, or an entry-level one; 26.3 has no `reference` loot function, and a bare id in `functions` did nothing, which is why two earlier attempts handed out plain bottles. In 26.3 loot functions are keyed `type`, not `function`. Throwing gives no advancement trigger, only the `used` stat, so tick finds thrown `experience_bottle` entities carrying that data in their `Item` stack and tags them `xpeco.tracked_bottle`. A `marker` tagged `xpeco.bottle_tracker` rides each one. A tracker with no vehicle means the bottle landed: orbs within 3 blocks are killed and exactly `bottlePoints` of orbs are spawned, split at random. A direct hit on a player is the exception: the player collects the vanilla orbs in the same tick, before tick can kill them. While a bottle is in flight, players within 3 blocks of it get a per-tick total snapshot in `xpeco.bottle_prev`; on landing, what they gained since the snapshot, up to 11, is taken back before the 7 points spawn. Caveats: unrelated orbs near the impact die too, and the marker position lags the impact by up to a tick of travel.
+
+Orbs spawned by the replacement carry `xpeco.filled_bauble`, and the landing kill skips them, so bottles that land together do not remove each other's orbs.
+
+Wall-aware orb motion: vanilla flips the random orb vector when it points into the surface hit, using the face normal for blocks and the reverse of the bottle motion for entities. The marker keeps its position and last-step speed in its `data` tag, in thousandths of a block, updated every tick in flight. On landing, `bottle/normal` probes 1.1 steps ahead along each axis the bottle was moving on; a block outside `#xpeco:target/ray_pass` there gives a normal of the opposite of the travel direction on that axis. With nothing solid found, as for an entity hit, the normal is the reverse of the motion, and with no motion, up. `bottle/orient` takes the dot product of the normal with the three scaled motion rolls and negates all three when it is negative. Limits: the marker lags the impact by up to a tick of travel, about 0.7 blocks, so a bottle clipping a corner can pick the wrong face, and speeds under 0.02 per tick are ignored.
+
+Static checks pass: PackLoad, CmdCheck and the uninstall coverage script. Not tested in game.
+
+Dropped by decision: drinking a bottle without throwing it.

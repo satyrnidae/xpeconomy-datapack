@@ -1,18 +1,18 @@
 import ../config.js
 
-# /trigger xpeco.pay set <amount> while looking at the target player
+# /trigger pay set <amount> while looking at the target player
 function load minecraft:load {
-    scoreboard objectives add xpeco.pay trigger
+    scoreboard objectives add pay trigger
 }
 
 function on_uninstall xpeco:on_uninstall {
-    scoreboard objectives remove xpeco.pay
+    scoreboard objectives remove pay
 }
 
 function run {
     # As and at the payer; the trigger score is the amount
-    scoreboard players operation #amt xpeco.tmp = @s xpeco.pay
-    scoreboard players set @s xpeco.pay 0
+    scoreboard players operation #amt xpeco.tmp = @s pay
+    scoreboard players set @s pay 0
     function xpeco:target/find
     execute unless entity @a[tag=xpeco.target] run return run tellraw @s {translate:"xpeco.pay.notarget",fallback:"Look at the player you want to pay."}
     function xpeco:pay/transfer
@@ -45,4 +45,10 @@ function to_name {
     $experience add @s -$(amount) points
     $scoreboard players add $(to) xpeco.pending $(amount)
     $tellraw @s {text:"Paid $(to) $(amount) points."}
+}
+
+function tick minecraft:tick {
+    scoreboard players enable @a pay
+    scoreboard players set @a[scores={pay=..-1}] pay 0
+    execute as @a[scores={pay=1..}] at @s run function xpeco:pay/run
 }

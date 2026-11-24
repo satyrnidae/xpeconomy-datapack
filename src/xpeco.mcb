@@ -1,6 +1,12 @@
 import ./config.js
 
 function load minecraft:load {
+    # Trigger objectives from before the rename. Removing one that does not exist just fails, so this is safe every load.
+    scoreboard objectives remove xpeco.balance
+    scoreboard objectives remove xpeco.pay
+    scoreboard objectives remove xpeco.request
+    scoreboard objectives remove xpeco.reply
+
     # Shared objectives. Each feature file defines its own beside its functions.
     scoreboard objectives add xpeco.tmp dummy
     scoreboard objectives add xpeco.cfg dummy
@@ -21,30 +27,6 @@ function load minecraft:load {
 
     # Request lifetime in ticks from config.json, 600 is 30 seconds. Only set when unset so /reload keeps an edited value.
     execute unless score #expire xpeco.cfg = #expire xpeco.cfg run scoreboard players set #expire xpeco.cfg <%config.expireTicks%>
-}
-
-function tick minecraft:tick {
-    # Offline ledger: holder is the player name, so an online player's own score is the same entry
-    execute as @a[scores={xpeco.pending=1..}] run function xpeco:pending/apply
-    execute as @a[scores={xpeco.pending=..-1}] run function xpeco:pending/apply
-
-    # Triggers
-    scoreboard players enable @a xpeco.balance
-    execute as @a[scores={xpeco.balance=1..}] run function xpeco:balance/run
-    scoreboard players enable @a xpeco.pay
-    scoreboard players set @a[scores={xpeco.pay=..-1}] xpeco.pay 0
-    execute as @a[scores={xpeco.pay=1..}] at @s run function xpeco:pay/run
-
-    # Requests and replies
-    execute as @a unless score @s xpeco.account = @s xpeco.account run function xpeco:account/assign
-    scoreboard players enable @a xpeco.request
-    scoreboard players enable @a xpeco.reply
-    scoreboard players set @a[scores={xpeco.request=..-1}] xpeco.request 0
-    execute as @a[scores={xpeco.request=1..}] at @s run function xpeco:request/run
-    execute store result score #now xpeco.tmp run time query gametime
-    execute as @a[scores={xpeco.req.amt=1..}] run function xpeco:request/check_expiry
-    execute as @a[scores={xpeco.reply=1..}] run function xpeco:reply/run
-    scoreboard players set @a[scores={xpeco.reply=..0}] xpeco.reply 0
 }
 
 # Removes everything the pack created, then disables it. Run as an operator: /function xpeco:uninstall
