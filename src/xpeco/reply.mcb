@@ -1,14 +1,14 @@
 import ../config.js
 
-# The target answers with the chat buttons, which run /trigger accept_charges (Pay) or /trigger decline_payment (Decline).
+# The target answers with the chat buttons, which run /trigger xpeco.accept_charges (Pay) or /trigger xpeco.decline_payment (Decline).
 function load minecraft:load {
-    scoreboard objectives add accept_charges trigger
-    scoreboard objectives add decline_payment trigger
+    scoreboard objectives add xpeco.accept_charges trigger
+    scoreboard objectives add xpeco.decline_payment trigger
 }
 
 function on_uninstall xpeco:on_uninstall {
-    scoreboard objectives remove accept_charges
-    scoreboard objectives remove decline_payment
+    scoreboard objectives remove xpeco.accept_charges
+    scoreboard objectives remove xpeco.decline_payment
 }
 
 function resolve {
@@ -24,8 +24,8 @@ function resolve {
 
 function accept {
     # As the player who clicked Pay. Answering both at once counts as accepting.
-    scoreboard players set @s accept_charges 0
-    scoreboard players set @s decline_payment 0
+    scoreboard players set @s xpeco.accept_charges 0
+    scoreboard players set @s xpeco.decline_payment 0
     function xpeco:reply/resolve
     execute unless entity @a[tag=xpeco.target] run return 0
     function xpeco:pay/transfer
@@ -34,7 +34,7 @@ function accept {
 
 function decline {
     # As the player who clicked Decline
-    scoreboard players set @s decline_payment 0
+    scoreboard players set @s xpeco.decline_payment 0
     function xpeco:reply/resolve
     execute unless entity @a[tag=xpeco.target] run return 0
     tellraw @a[tag=xpeco.target,limit=1] {translate:"xpeco.request.declined",fallback:"%s declined your request.",with:[{selector:"@s"}]}
@@ -43,10 +43,10 @@ function decline {
 }
 
 function tick minecraft:tick {
-    scoreboard players enable @a accept_charges
-    scoreboard players enable @a decline_payment
-    execute as @a[scores={accept_charges=1..}] run function xpeco:reply/accept
-    execute as @a[scores={decline_payment=1..}] run function xpeco:reply/decline
-    scoreboard players set @a[scores={accept_charges=..0}] accept_charges 0
-    scoreboard players set @a[scores={decline_payment=..0}] decline_payment 0
+    scoreboard players enable @a xpeco.accept_charges
+    scoreboard players enable @a xpeco.decline_payment
+    execute as @a[scores={xpeco.accept_charges=1..}] run function xpeco:reply/accept
+    execute as @a[scores={xpeco.decline_payment=1..}] run function xpeco:reply/decline
+    scoreboard players set @a[scores={xpeco.accept_charges=..0}] xpeco.accept_charges 0
+    scoreboard players set @a[scores={xpeco.decline_payment=..0}] xpeco.decline_payment 0
 }

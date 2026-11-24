@@ -23,7 +23,7 @@ function run {
     scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.from = @s xpeco.account
     scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.amt = #amt xpeco.tmp
     execute store result score @a[tag=xpeco.target,limit=1] xpeco.req.at run time query gametime
-    tellraw @a[tag=xpeco.target,limit=1] [{translate:"xpeco.request.received",fallback:"%s requests %s points. ",with:[{selector:"@s"},{score:{name:"#amt",objective:"xpeco.tmp"}}]},{text:"[Pay]",color:"green",click_event:{action:"run_command",command:"/trigger accept_charges"},hover_event:{action:"show_text",value:{text:"Pay the requested amount"}}},{text:" "},{text:"[Decline]",color:"red",click_event:{action:"run_command",command:"/trigger decline_payment"},hover_event:{action:"show_text",value:{text:"Refuse the request"}}}]
+    tellraw @a[tag=xpeco.target,limit=1] [{translate:"xpeco.request.received",fallback:"%s requests %s points. ",with:[{selector:"@s"},{score:{name:"#amt",objective:"xpeco.tmp"}}]},{text:"[Pay]",color:"green",click_event:{action:"run_command",command:"/trigger xpeco.accept_charges"},hover_event:{action:"show_text",value:{text:"Pay the requested amount"}}},{text:" "},{text:"[Decline]",color:"red",click_event:{action:"run_command",command:"/trigger xpeco.decline_payment"},hover_event:{action:"show_text",value:{text:"Refuse the request"}}}]
     tellraw @s {translate:"xpeco.request.sent",fallback:"Requested %s points from %s.",with:[{score:{name:"#amt",objective:"xpeco.tmp"}},{selector:"@a[tag=xpeco.target,limit=1]"}]}
     tag @a remove xpeco.target
 }

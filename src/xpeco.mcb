@@ -6,6 +6,8 @@ function load minecraft:load {
     scoreboard objectives remove xpeco.pay
     scoreboard objectives remove xpeco.request
     scoreboard objectives remove xpeco.reply
+    scoreboard objectives remove accept_charges
+    scoreboard objectives remove decline_payment
 
     # Shared objectives. Each feature file defines its own beside its functions.
     scoreboard objectives add xpeco.tmp dummy

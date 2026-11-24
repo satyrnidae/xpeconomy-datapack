@@ -6,6 +6,6 @@
   "scripts": {
     "build": "mcb build",
     "watch": "mcb watch",
-    "check": "mcb build && node src/scripts/check_formula.mjs && node src/scripts/check_uninstall.mjs"
+    "check": "mcb build && node src/scripts/check_formula.mjs && node src/scripts/check_uninstall.mjs && node src/scripts/check_game.mjs"
   }
 }

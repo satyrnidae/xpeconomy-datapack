@@ -153,7 +153,7 @@ Added `pay/run`, `target/ray`, `pay/move`. Parses and loads under 26.3, same sta
 
 ## Prototype 1c: payment requests
 
-`/trigger request set <amount>` while looking at a player. The target gets a chat line with [Pay] and [Decline]; the buttons run `/trigger accept_charges` and `/trigger decline_payment`, which any player may use, so no op level is involved. Pay sends points to the requester from the clicker through the same `pay/transfer` as look-at pay, so the overpay check is shared.
+`/trigger request set <amount>` while looking at a player. The target gets a chat line with [Pay] and [Decline]; the buttons run `/trigger xpeco.accept_charges` and `/trigger xpeco.decline_payment`, which any player may use, so no op level is involved. Pay sends points to the requester from the clicker through the same `pay/transfer` as look-at pay, so the overpay check is shared.
 
 Pieces: `request/run`, `reply/run`, `reply/decline`, `target/find`, `pay/transfer`, `account/assign`.
 
@@ -161,7 +161,7 @@ Design notes:
 - The request lives on the target as two scores, `xpeco.req.amt` and `xpeco.req.from`. The sender is a per-name integer account number from `xpeco.account`, so the click carries no name and nothing needs macros.
 - One pending request per target; a new one replaces it. Requests expire after 600 ticks, 30 seconds, set by `#expire` in `xpeco.cfg`. The request stores `time query gametime` in `xpeco.req.at`, and `tick` runs `request/check_expiry` for every player with a pending request; it clears the request and tells both sides if online. Cost is one score compare per pending request per tick.
 - Pay needs the requester online. If they left, the target is told and the request is cleared.
-- The accept_charges and decline_payment triggers are always enabled, so a stray use with nothing pending prints "No pending request."
+- The xpeco.accept_charges and xpeco.decline_payment triggers are always enabled, so a stray use with nothing pending prints "No pending request."
 
 Same static checks as above, 127 commands parsed, pack loads. Untested in a world:
 - Whether 26.3 shows a confirmation before a chat `run_command` click runs. VERIFY. If it does, the flow still works with one extra click.
