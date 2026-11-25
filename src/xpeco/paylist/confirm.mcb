@@ -1,0 +1,18 @@
+# The confirm prompt shown before any payment leaves the payer.
+
+function prompt {
+    # As the payer, with xpeco.pay.to and xpeco.pay.amt set
+    execute store result storage xpeco:tmp id int 1 run scoreboard players get @s xpeco.pay.to
+    execute store result storage xpeco:tmp amount int 1 run scoreboard players get @s xpeco.pay.amt
+    function xpeco:paylist/confirm/prompt_text with storage xpeco:tmp
+}
+
+function prompt_text {
+    $execute unless data storage xpeco:accounts list[{id:$(id)}] run return run function xpeco:paylist/confirm/unknown
+    $tellraw @s [{translate:"xpeco.pay.confirm",fallback:"Pay %s points to %s? ",with:[{text:"$(amount)"},{nbt:"list[{id:$(id)}].name",storage:"xpeco:accounts"}]},{text:"[Confirm]",color:"green",click_event:{action:"run_command",command:"/trigger xpeco.pay_confirm"},hover_event:{action:"show_text",value:{text:"Send the payment"}}},{text:" "},{text:"[Deny]",color:"red",click_event:{action:"run_command",command:"/trigger xpeco.pay_deny"},hover_event:{action:"show_text",value:{text:"Cancel the payment"}}}]
+}
+
+function unknown {
+    function xpeco:paylist/clear
+    tellraw @s {translate:"xpeco.pay.unknown",fallback:"Unknown account."}
+}

@@ -1,0 +1,55 @@
+# Handlers for the xpeco.pay_* triggers behind the chat buttons, and the tick that enables and dispatches them.
+
+function on_to {
+    # As a player who clicked a name. The score is the account id.
+    scoreboard players operation #to xpeco.tmp = @s xpeco.pay_to
+    scoreboard players set @s xpeco.pay_to 0
+    execute unless function xpeco:paylist/fresh run return 0
+    execute if score #to xpeco.tmp = @s xpeco.account run return run tellraw @s {translate:"xpeco.pay.self",fallback:"You cannot pay yourself."}
+    scoreboard players operation @s xpeco.pay.to = #to xpeco.tmp
+    function xpeco:paylist/confirm/prompt
+}
+
+function on_page {
+    scoreboard players operation @s xpeco.pay.page = @s xpeco.pay_page
+    scoreboard players set @s xpeco.pay_page 0
+    execute unless function xpeco:paylist/fresh run return 0
+    function xpeco:paylist/list/show
+}
+
+function on_confirm {
+    scoreboard players set @s xpeco.pay_confirm 0
+    scoreboard players set @s xpeco.pay_deny 0
+    execute unless function xpeco:paylist/fresh run return 0
+    execute unless score @s xpeco.pay.to matches 1.. run return run tellraw @s {translate:"xpeco.pay.nopick",fallback:"Pick who to pay first."}
+    scoreboard players operation #amt xpeco.tmp = @s xpeco.pay.amt
+    scoreboard players operation #to xpeco.tmp = @s xpeco.pay.to
+    function xpeco:paylist/clear
+    tag @a remove xpeco.target
+    execute as @a if score @s xpeco.account = #to xpeco.tmp run tag @s add xpeco.target
+    execute if entity @a[tag=xpeco.target] run function xpeco:pay/transfer
+    execute unless entity @a[tag=xpeco.target] run function xpeco:pay/offline
+    tag @a remove xpeco.target
+}
+
+function on_deny {
+    scoreboard players set @s xpeco.pay_deny 0
+    execute unless score @s xpeco.pay.amt matches 1.. run return run tellraw @s {translate:"xpeco.pay.none",fallback:"No pending payment."}
+    function xpeco:paylist/clear
+    tellraw @s {translate:"xpeco.pay.denied",fallback:"Payment cancelled."}
+}
+
+function tick minecraft:tick {
+    scoreboard players enable @a xpeco.pay_to
+    scoreboard players enable @a xpeco.pay_page
+    scoreboard players enable @a xpeco.pay_confirm
+    scoreboard players enable @a xpeco.pay_deny
+    execute as @a[scores={xpeco.pay_to=1..}] run function xpeco:paylist/triggers/on_to
+    execute as @a[scores={xpeco.pay_page=1..}] run function xpeco:paylist/triggers/on_page
+    execute as @a[scores={xpeco.pay_confirm=1..}] run function xpeco:paylist/triggers/on_confirm
+    execute as @a[scores={xpeco.pay_deny=1..}] run function xpeco:paylist/triggers/on_deny
+    scoreboard players set @a[scores={xpeco.pay_to=..0}] xpeco.pay_to 0
+    scoreboard players set @a[scores={xpeco.pay_page=..0}] xpeco.pay_page 0
+    scoreboard players set @a[scores={xpeco.pay_confirm=..0}] xpeco.pay_confirm 0
+    scoreboard players set @a[scores={xpeco.pay_deny=..0}] xpeco.pay_deny 0
+}

@@ -1,0 +1,81 @@
+import ../../config.js
+
+# Fill: sneak with a glass bottle in the main hand and aim at an enchanting table within reach. While that holds, an
+#  interaction entity sits over the table. It is a bit bigger than the table so the ray reaches it before the block, and
+#  its response makes the client treat the click as handled, so the table menu never opens. Right-clicking the entity
+#  fires player_interacted_with_entity, whose reward function does the fill. When nobody who qualifies is near, the
+#  entity is removed again, so tables behave normally otherwise.
+#  Reach is the entity interaction range, 3 blocks, not the 4.5 block reach for blocks. bottleReachSteps are 0.25 block
+#  steps along the look ray.
+#  Side effects while it is there: the table cannot be broken, and other players near it get the entity click instead of
+#  the menu.
+
+function on_uninstall xpeco:on_uninstall {
+    kill @e[type=minecraft:interaction,tag=xpeco.bottle.table]
+    advancement revoke @a only xpeco:bottle/table/on_interact
+}
+
+# Sneaking with a glass bottle in the main hand
+predicate ready {
+    "type": "minecraft:entity_properties",
+    "entity": "this",
+    "predicate": {
+        "minecraft:flags": {
+            "is_sneaking": true
+        },
+        "minecraft:equipment": {
+            "mainhand": {
+                "items": "minecraft:glass_bottle"
+            }
+        }
+    }
+}
+
+advancement on_interact {
+    "criteria": {
+        "use": {
+            "trigger": "minecraft:player_interacted_with_entity",
+            "conditions": {
+                "player": "xpeco:bottle/table/ready",
+                "entity": {
+                    "type": "minecraft:entity_properties",
+                    "entity": "this",
+                    "predicate": {
+                        "minecraft:entity_type": "minecraft:interaction"
+                    }
+                }
+            }
+        }
+    },
+    "requirements": [
+        [
+            "use"
+        ]
+    ],
+    "rewards": {
+        "function": "xpeco:bottle/fill"
+    }
+}
+
+function track {
+    # As and at a player who is sneaking with a glass bottle. Looks along the eye ray for an enchanting table.
+    scoreboard players set #steps xpeco.tmp <%config.bottleReachSteps%>
+    execute anchored eyes positioned ^ ^ ^ run function xpeco:bottle/table/ray
+}
+
+function ray {
+    # Same walk as the pay target ray, 0.25 block steps through blocks in #xpeco:target/ray_pass
+    execute if block ~ ~ ~ minecraft:enchanting_table run return run function xpeco:bottle/table/ensure
+    scoreboard players remove #steps xpeco.tmp 1
+    execute if score #steps xpeco.tmp matches 1.. if block ~ ~ ~ #xpeco:target/ray_pass positioned ^ ^ ^0.25 run function xpeco:bottle/table/ray
+}
+
+function ensure {
+    # At a point inside the table. Puts one interaction entity over the table's block, unless it already has one.
+    execute align xyz positioned ~0.5 ~ ~0.5 unless entity @e[type=minecraft:interaction,tag=xpeco.bottle.table,distance=..0.3] run summon minecraft:interaction ~ ~ ~ {width:1.1f,height:0.85f,response:true,Tags:["xpeco.bottle.table"]}
+}
+
+function tick minecraft:tick {
+    execute as @a[predicate=xpeco:bottle/table/ready] at @s run function xpeco:bottle/table/track
+    execute as @e[type=minecraft:interaction,tag=xpeco.bottle.table] at @s unless entity @a[predicate=xpeco:bottle/table/ready,distance=..6] run kill @s
+}

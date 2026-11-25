@@ -21,8 +21,8 @@ function run {
     function xpeco:target/find
     execute if entity @a[tag=xpeco.target] run scoreboard players operation @s xpeco.pay.to = @a[tag=xpeco.target,limit=1] xpeco.account
     tag @a remove xpeco.target
-    execute if score @s xpeco.pay.to matches 1.. run return run function xpeco:paylist/prompt
-    function xpeco:paylist/show
+    execute if score @s xpeco.pay.to matches 1.. run return run function xpeco:paylist/confirm/prompt
+    function xpeco:paylist/list/show
 }
 
 function offline {

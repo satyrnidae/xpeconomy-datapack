@@ -1,0 +1,53 @@
+# The replacement orbs: exactly bottlePoints, split at random, with vanilla-like motion turned away from the surface.
+
+function on_uninstall xpeco:on_uninstall {
+    tag @e[type=minecraft:experience_orb] remove xpeco.filled_bauble
+}
+
+function orb_next {
+    # Takes a random 1..#left share, spawns it, repeats until #left is spent
+    execute store result score #r xpeco.tmp run random value 1..1000
+    scoreboard players operation #r xpeco.tmp %= #left xpeco.tmp
+    scoreboard players add #r xpeco.tmp 1
+    scoreboard players operation #left xpeco.tmp -= #r xpeco.tmp
+    execute store result storage xpeco:tmp value int 1 run scoreboard players get #r xpeco.tmp
+    # Motion as the vanilla orb constructor rolls it: x and z within 0.2, y 0 to 0.4, flipped when it points into the surface
+    execute store result score #rx xpeco.tmp run random value -2000..2000
+    execute store result score #ry xpeco.tmp run random value 0..4000
+    execute store result score #rz xpeco.tmp run random value -2000..2000
+    function xpeco:bottle/orbs/orient
+    execute store result storage xpeco:tmp mx double 0.0001 run scoreboard players get #rx xpeco.tmp
+    execute store result storage xpeco:tmp my double 0.0001 run scoreboard players get #ry xpeco.tmp
+    execute store result storage xpeco:tmp mz double 0.0001 run scoreboard players get #rz xpeco.tmp
+    function xpeco:bottle/orbs/orb with storage xpeco:tmp
+    execute if score #left xpeco.tmp matches 1.. run function xpeco:bottle/orbs/orb_next
+}
+
+function orient {
+    # Dot product of the roll with the normal; a negative one points into the surface, so negate the whole roll
+    scoreboard players operation #dot xpeco.tmp = #rx xpeco.tmp
+    scoreboard players operation #dot xpeco.tmp *= #nx xpeco.tmp
+    scoreboard players operation #t xpeco.tmp = #ry xpeco.tmp
+    scoreboard players operation #t xpeco.tmp *= #ny xpeco.tmp
+    scoreboard players operation #dot xpeco.tmp += #t xpeco.tmp
+    scoreboard players operation #t xpeco.tmp = #rz xpeco.tmp
+    scoreboard players operation #t xpeco.tmp *= #nz xpeco.tmp
+    scoreboard players operation #dot xpeco.tmp += #t xpeco.tmp
+    execute if score #dot xpeco.tmp matches ..-1 run function xpeco:bottle/orbs/flip
+}
+
+function flip {
+    scoreboard players set #t xpeco.tmp 0
+    scoreboard players operation #t xpeco.tmp -= #rx xpeco.tmp
+    scoreboard players operation #rx xpeco.tmp = #t xpeco.tmp
+    scoreboard players set #t xpeco.tmp 0
+    scoreboard players operation #t xpeco.tmp -= #ry xpeco.tmp
+    scoreboard players operation #ry xpeco.tmp = #t xpeco.tmp
+    scoreboard players set #t xpeco.tmp 0
+    scoreboard players operation #t xpeco.tmp -= #rz xpeco.tmp
+    scoreboard players operation #rz xpeco.tmp = #t xpeco.tmp
+}
+
+function orb {
+    $summon minecraft:experience_orb ~ ~ ~ {Value:$(value),Motion:[$(mx),$(my),$(mz)],Tags:["xpeco.filled_bauble"]}
+}

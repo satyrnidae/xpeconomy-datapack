@@ -1,0 +1,49 @@
+# What a filled bottle is: the loot table fill hands out, the modifier it applies and the predicate that recognizes a
+# thrown one.
+
+# One experience bottle. A loot table applies an item modifier through its root modifier key, not through a functions
+# list; 26.3 has no reference function, and a bare id in functions did nothing.
+loot_table filled {
+    "pools": [
+        {
+            "rolls": 1,
+            "entries": [
+                {
+                    "type": "minecraft:item",
+                    "name": "minecraft:experience_bottle"
+                }
+            ]
+        }
+    ],
+    "modifier": "xpeco:bottle/item/filled"
+}
+
+# Name, rarity and the marker data a filled bottle carries. custom_data goes through SNBT so the flag stays a byte.
+item_modifier filled {
+    "type": "minecraft:sequence",
+    "functions": [
+        {
+            "type": "minecraft:set_components",
+            "components": {
+                "minecraft:item_name": {
+                    "translate": "xpeco.bottle.name",
+                    "fallback": "Filled Bottle o' Enchanting"
+                },
+                "minecraft:rarity": "common"
+            }
+        },
+        {
+            "type": "minecraft:set_custom_data",
+            "tag": "{\"xpeco:player_filled\":1b}"
+        }
+    ]
+}
+
+# Thrown bottle whose stack came from fill
+predicate player_filled {
+    "type": "minecraft:entity_properties",
+    "entity": "this",
+    "predicate": {
+        "minecraft:nbt": "{Item:{components:{\"minecraft:custom_data\":{\"xpeco:player_filled\":1b}}}}"
+    }
+}
