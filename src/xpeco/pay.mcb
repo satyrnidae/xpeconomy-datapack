@@ -13,10 +13,38 @@ function run {
     # As and at the payer; the trigger score is the amount
     scoreboard players operation #amt xpeco.tmp = @s pay
     scoreboard players set @s pay 0
+    # The amount waits for a confirmation. A player in the crosshair is the target; otherwise a list of accounts is offered.
+    scoreboard players operation @s xpeco.pay.amt = #amt xpeco.tmp
+    execute store result score @s xpeco.pay.at run time query gametime
+    scoreboard players set @s xpeco.pay.to 0
+    scoreboard players set @s xpeco.pay.page 1
     function xpeco:target/find
-    execute unless entity @a[tag=xpeco.target] run return run tellraw @s {translate:"xpeco.pay.notarget",fallback:"Look at the player you want to pay."}
-    function xpeco:pay/transfer
+    execute if entity @a[tag=xpeco.target] run scoreboard players operation @s xpeco.pay.to = @a[tag=xpeco.target,limit=1] xpeco.account
     tag @a remove xpeco.target
+    execute if score @s xpeco.pay.to matches 1.. run return run function xpeco:paylist/prompt
+    function xpeco:paylist/show
+}
+
+function offline {
+    # As the payer, with #amt and #to (the target account) set. Pays an account that is not online through the pending ledger.
+    function xpeco:total/compute
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s {translate:"xpeco.pay.insufficient",fallback:"Not enough experience."}
+    data remove storage xpeco:tmp name
+    execute store result storage xpeco:tmp id int 1 run scoreboard players get #to xpeco.tmp
+    execute store result storage xpeco:tmp amount int 1 run scoreboard players get #amt xpeco.tmp
+    function xpeco:pay/offline_name with storage xpeco:tmp
+    execute unless data storage xpeco:tmp name run return run tellraw @s {translate:"xpeco.pay.unknown",fallback:"Unknown account."}
+    function xpeco:pay/offline_credit with storage xpeco:tmp
+}
+
+function offline_name {
+    $data modify storage xpeco:tmp name set from storage xpeco:accounts list[{id:$(id)}].name
+}
+
+function offline_credit {
+    $experience add @s -$(amount) points
+    $scoreboard players add $(name) xpeco.pending $(amount)
+    $tellraw @s {translate:"xpeco.pay.sent",fallback:"Paid %s %s points.",with:[{text:"$(name)"},{text:"$(amount)"}]}
 }
 
 function transfer {

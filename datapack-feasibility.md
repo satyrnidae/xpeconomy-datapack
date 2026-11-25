@@ -202,3 +202,9 @@ Wall-aware orb motion: vanilla flips the random orb vector when it points into t
 Static checks pass: PackLoad, CmdCheck and the uninstall coverage script. Not tested in game.
 
 Dropped by decision: drinking a bottle without throwing it.
+
+## Prototype 3: pay list and confirm
+
+`/trigger pay set <amount>` stores the amount and a timestamp. A player in the crosshair goes straight to a confirm prompt; otherwise a list of every account is shown, 15 a page in three columns of five, in the order the accounts were first seen. Names are clickable and run `/trigger xpeco.pay_to set <id>`. Confirm and deny are `xpeco.pay_confirm` and `xpeco.pay_deny`, and a pending payment expires after `#expire` ticks like a request. Offline accounts are paid through the pending ledger by name.
+
+Names for offline accounts: scoreboards cannot be listed, so `xpeco:accounts` stores a list of `{id,name}`. The name is read from a player head, since `fill_player_head` resolves the profile of the player running the modifier, and `profile.name` is stored once per player. A rename is picked up on the next rejoin: the objective `xpeco.left` counts `leave_game`, so it is nonzero on the first tick back, and the name is read again. When it changed, credits waiting in the pending ledger under the old name move to the new one, since that ledger is keyed by name. Limits: a rename shows only after that player has left and rejoined, and accounts that existed before names were stored appear only after that player next joins. Not tested in game.

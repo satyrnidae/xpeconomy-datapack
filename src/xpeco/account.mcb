@@ -1,19 +1,85 @@
 import ../config.js
 
+# Accounts: a stable number per player, plus the name, kept in storage xpeco:accounts as a list of {id,name}. Scoreboards
+# cannot be listed, so the storage is what lets the pay list show offline players. The name comes from a player head:
+# fill_player_head resolves the profile of the player running the modifier.
 function load minecraft:load {
     scoreboard objectives add xpeco.account dummy
+    scoreboard objectives add xpeco.named dummy
+    scoreboard objectives add xpeco.left minecraft.custom:minecraft.leave_game
+    execute unless data storage xpeco:accounts list run data modify storage xpeco:accounts list set value []
 }
 
 function on_uninstall xpeco:on_uninstall {
     scoreboard objectives remove xpeco.account
+    scoreboard objectives remove xpeco.named
+    scoreboard objectives remove xpeco.left
+    kill @e[type=minecraft:item,tag=xpeco.head]
+    data remove storage xpeco:accounts list
+}
+
+item_modifier head {
+    "type": "minecraft:fill_player_head",
+    "entity": "this"
+}
+
+function register {
+    # As and at a player with no recorded name yet. Players from before names were kept get one on their next tick online.
+    execute unless score @s xpeco.account = @s xpeco.account run function xpeco:account/assign
+    function xpeco:account/record
 }
 
 function assign {
-    # Stable per-name account number so a request can name its sender without a UUID
     scoreboard players add #next xpeco.cfg 1
     scoreboard players operation @s xpeco.account = #next xpeco.cfg
 }
 
+function read_name {
+    # As and at a player. Leaves {id,name} in storage xpeco:tmp entry, without name when the profile did not resolve.
+    summon minecraft:item ~ ~ ~ {Item:{id:"minecraft:player_head",count:1},PickupDelay:32767s,Tags:["xpeco.head"]}
+    item modify entity @e[type=minecraft:item,tag=xpeco.head,distance=..0.1,limit=1] contents xpeco:account/head
+    data modify storage xpeco:tmp entry set value {}
+    execute store result storage xpeco:tmp entry.id int 1 run scoreboard players get @s xpeco.account
+    data modify storage xpeco:tmp entry.name set from entity @e[type=minecraft:item,tag=xpeco.head,distance=..0.1,limit=1] Item.components."minecraft:profile".name
+    kill @e[type=minecraft:item,tag=xpeco.head,distance=..0.1]
+}
+
+function record {
+    function xpeco:account/read_name
+    # Without a name the player stays unnamed and this runs again next tick
+    execute unless data storage xpeco:tmp entry.name run return 0
+    data modify storage xpeco:accounts list append from storage xpeco:tmp entry
+    scoreboard players set @s xpeco.named 1
+}
+
+# A player who rejoined may have been renamed, so the stored name is read again. xpeco.left counts leave_game, which is
+# nonzero on the first tick after the rejoin.
+function on_rejoin {
+    scoreboard players set @s xpeco.left 0
+    execute unless score @s xpeco.named matches 1 run return 0
+    function xpeco:account/read_name
+    execute unless data storage xpeco:tmp entry.name run return 0
+    function xpeco:account/rename with storage xpeco:tmp entry
+}
+
+function rename {
+    # Macro with the account id and the current name. Updates the stored name, and when it changed moves credits that were
+    # waiting under the old name, since the pending ledger is keyed by name.
+    $data modify storage xpeco:tmp old set from storage xpeco:accounts list[{id:$(id)}].name
+    data modify storage xpeco:tmp keep set from storage xpeco:tmp old
+    $data modify storage xpeco:tmp new set value "$(name)"
+    execute store success score #changed xpeco.tmp run data modify storage xpeco:tmp old set from storage xpeco:tmp new
+    execute if score #changed xpeco.tmp matches 0 run return 0
+    $data modify storage xpeco:accounts list[{id:$(id)}].name set value "$(name)"
+    function xpeco:account/move_pending with storage xpeco:tmp
+}
+
+function move_pending {
+    $scoreboard players operation $(new) xpeco.pending += $(keep) xpeco.pending
+    $scoreboard players reset $(keep) xpeco.pending
+}
+
 function tick minecraft:tick {
-    execute as @a unless score @s xpeco.account = @s xpeco.account run function xpeco:account/assign
+    execute as @a at @s unless score @s xpeco.named matches 1 run function xpeco:account/register
+    execute as @a[scores={xpeco.left=1..}] at @s run function xpeco:account/on_rejoin
 }

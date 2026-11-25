@@ -1,0 +1,209 @@
+import ../config.js
+
+# Pay by list and confirm. /trigger pay set <amount> stores the amount in xpeco.pay.amt. A target in the crosshair goes
+# straight to the confirm prompt; otherwise a paged list of every account is shown, 15 a page in three columns of five.
+# The buttons run xpeco.pay_to (account id), xpeco.pay_page, xpeco.pay_confirm and xpeco.pay_deny. They carry the prefix so
+# players do not run them out of order. A pending payment expires after #expire ticks, like a request.
+function load minecraft:load {
+    scoreboard objectives add xpeco.pay.amt dummy
+    scoreboard objectives add xpeco.pay.to dummy
+    scoreboard objectives add xpeco.pay.at dummy
+    scoreboard objectives add xpeco.pay.page dummy
+    scoreboard objectives add xpeco.pay_to trigger
+    scoreboard objectives add xpeco.pay_page trigger
+    scoreboard objectives add xpeco.pay_confirm trigger
+    scoreboard objectives add xpeco.pay_deny trigger
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.pay.amt
+    scoreboard objectives remove xpeco.pay.to
+    scoreboard objectives remove xpeco.pay.at
+    scoreboard objectives remove xpeco.pay.page
+    scoreboard objectives remove xpeco.pay_to
+    scoreboard objectives remove xpeco.pay_page
+    scoreboard objectives remove xpeco.pay_confirm
+    scoreboard objectives remove xpeco.pay_deny
+}
+
+function fresh {
+    # As a player. Succeeds when there is a payment that has not expired, otherwise says why and fails.
+    execute unless score @s xpeco.pay.amt matches 1.. run tellraw @s {translate:"xpeco.pay.none",fallback:"No pending payment."}
+    execute unless score @s xpeco.pay.amt matches 1.. run return 0
+    execute store result score #now xpeco.tmp run time query gametime
+    scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
+    scoreboard players operation #age xpeco.tmp -= @s xpeco.pay.at
+    execute if score #age xpeco.tmp < #expire xpeco.cfg run return 1
+    scoreboard players set @s xpeco.pay.amt 0
+    tellraw @s {translate:"xpeco.pay.expired",fallback:"The payment expired."}
+    return 0
+}
+
+function clear {
+    scoreboard players set @s xpeco.pay.amt 0
+    scoreboard players set @s xpeco.pay.to 0
+}
+
+#region List
+
+function show {
+    # As the payer. Shows the page in xpeco.pay.page.
+    function xpeco:paylist/build_view
+    execute store result score #n xpeco.tmp run data get storage xpeco:tmp view
+    execute if score #n xpeco.tmp matches 0 run return run tellraw @s {translate:"xpeco.pay.empty",fallback:"No other accounts to pay yet."}
+    scoreboard players operation #pages xpeco.tmp = #n xpeco.tmp
+    scoreboard players add #pages xpeco.tmp 14
+    scoreboard players set #15 xpeco.tmp 15
+    scoreboard players operation #pages xpeco.tmp /= #15 xpeco.tmp
+    scoreboard players operation #p xpeco.tmp = @s xpeco.pay.page
+    execute if score #p xpeco.tmp matches ..0 run scoreboard players set #p xpeco.tmp 1
+    execute if score #p xpeco.tmp > #pages xpeco.tmp run scoreboard players operation #p xpeco.tmp = #pages xpeco.tmp
+    scoreboard players operation @s xpeco.pay.page = #p xpeco.tmp
+    scoreboard players operation #start xpeco.tmp = #p xpeco.tmp
+    scoreboard players remove #start xpeco.tmp 1
+    scoreboard players operation #start xpeco.tmp *= #15 xpeco.tmp
+
+    tellraw @s {translate:"xpeco.pay.pick",fallback:"Pay %s points to, page %s of %s:",with:[{score:{name:"@s",objective:"xpeco.pay.amt"}},{score:{name:"#p",objective:"xpeco.tmp"}},{score:{name:"#pages",objective:"xpeco.tmp"}}]}
+    scoreboard players set #r xpeco.tmp 0
+    function xpeco:paylist/rows
+
+    # Prev and next clamp at the ends, so the buttons are always there
+    scoreboard players operation #prev xpeco.tmp = #p xpeco.tmp
+    scoreboard players remove #prev xpeco.tmp 1
+    execute if score #prev xpeco.tmp matches ..0 run scoreboard players set #prev xpeco.tmp 1
+    scoreboard players operation #next xpeco.tmp = #p xpeco.tmp
+    scoreboard players add #next xpeco.tmp 1
+    execute if score #next xpeco.tmp > #pages xpeco.tmp run scoreboard players operation #next xpeco.tmp = #pages xpeco.tmp
+    execute store result storage xpeco:tmp prev int 1 run scoreboard players get #prev xpeco.tmp
+    execute store result storage xpeco:tmp next int 1 run scoreboard players get #next xpeco.tmp
+    function xpeco:paylist/footer with storage xpeco:tmp
+}
+
+function footer {
+    $tellraw @s [{text:"[< Prev]",color:"gray",click_event:{action:"run_command",command:"/trigger xpeco.pay_page set $(prev)"}},{text:"  "},{text:"[Next >]",color:"gray",click_event:{action:"run_command",command:"/trigger xpeco.pay_page set $(next)"}}]
+}
+
+function build_view {
+    # View is every account but the payer's own, in the order they were first seen
+    data modify storage xpeco:tmp view set value []
+    data modify storage xpeco:tmp rest set from storage xpeco:accounts list
+    function xpeco:paylist/build_next
+}
+
+function build_next {
+    execute unless data storage xpeco:tmp rest[0] run return 0
+    execute store result score #cid xpeco.tmp run data get storage xpeco:tmp rest[0].id
+    execute unless score #cid xpeco.tmp = @s xpeco.account run data modify storage xpeco:tmp view append from storage xpeco:tmp rest[0]
+    data remove storage xpeco:tmp rest[0]
+    function xpeco:paylist/build_next
+}
+
+function rows {
+    # One chat line per row, #r 0 to 4. Column c holds the entry at #start + #r + 5c.
+    data modify storage xpeco:tmp row set value []
+    scoreboard players operation #i xpeco.tmp = #start xpeco.tmp
+    scoreboard players operation #i xpeco.tmp += #r xpeco.tmp
+    function xpeco:paylist/cell_at
+    scoreboard players add #i xpeco.tmp 5
+    function xpeco:paylist/cell_at
+    scoreboard players add #i xpeco.tmp 5
+    function xpeco:paylist/cell_at
+    execute if data storage xpeco:tmp row[0] run tellraw @s {nbt:"row[]",storage:"xpeco:tmp",interpret:true}
+    scoreboard players add #r xpeco.tmp 1
+    execute if score #r xpeco.tmp matches ..4 run function xpeco:paylist/rows
+}
+
+function cell_at {
+    execute if score #i xpeco.tmp >= #n xpeco.tmp run return 0
+    execute store result storage xpeco:tmp i int 1 run scoreboard players get #i xpeco.tmp
+    function xpeco:paylist/cell_index with storage xpeco:tmp
+}
+
+function cell_index {
+    $function xpeco:paylist/cell with storage xpeco:tmp view[$(i)]
+}
+
+function cell {
+    $data modify storage xpeco:tmp row append value {text:"$(name)   ",color:"aqua",click_event:{action:"run_command",command:"/trigger xpeco.pay_to set $(id)"},hover_event:{action:"show_text",value:{text:"Pay $(name)"}}}
+}
+
+#endregion
+
+#region Confirm
+
+function prompt {
+    # As the payer, with xpeco.pay.to and xpeco.pay.amt set
+    execute store result storage xpeco:tmp id int 1 run scoreboard players get @s xpeco.pay.to
+    execute store result storage xpeco:tmp amount int 1 run scoreboard players get @s xpeco.pay.amt
+    function xpeco:paylist/prompt_text with storage xpeco:tmp
+}
+
+function prompt_text {
+    $execute unless data storage xpeco:accounts list[{id:$(id)}] run return run function xpeco:paylist/unknown
+    $tellraw @s [{translate:"xpeco.pay.confirm",fallback:"Pay %s points to %s? ",with:[{text:"$(amount)"},{nbt:"list[{id:$(id)}].name",storage:"xpeco:accounts"}]},{text:"[Confirm]",color:"green",click_event:{action:"run_command",command:"/trigger xpeco.pay_confirm"},hover_event:{action:"show_text",value:{text:"Send the payment"}}},{text:" "},{text:"[Deny]",color:"red",click_event:{action:"run_command",command:"/trigger xpeco.pay_deny"},hover_event:{action:"show_text",value:{text:"Cancel the payment"}}}]
+}
+
+function unknown {
+    function xpeco:paylist/clear
+    tellraw @s {translate:"xpeco.pay.unknown",fallback:"Unknown account."}
+}
+
+#endregion
+
+#region Triggers
+
+function on_to {
+    # As a player who clicked a name. The score is the account id.
+    scoreboard players operation #to xpeco.tmp = @s xpeco.pay_to
+    scoreboard players set @s xpeco.pay_to 0
+    execute unless function xpeco:paylist/fresh run return 0
+    execute if score #to xpeco.tmp = @s xpeco.account run return run tellraw @s {translate:"xpeco.pay.self",fallback:"You cannot pay yourself."}
+    scoreboard players operation @s xpeco.pay.to = #to xpeco.tmp
+    function xpeco:paylist/prompt
+}
+
+function on_page {
+    scoreboard players operation @s xpeco.pay.page = @s xpeco.pay_page
+    scoreboard players set @s xpeco.pay_page 0
+    execute unless function xpeco:paylist/fresh run return 0
+    function xpeco:paylist/show
+}
+
+function on_confirm {
+    scoreboard players set @s xpeco.pay_confirm 0
+    scoreboard players set @s xpeco.pay_deny 0
+    execute unless function xpeco:paylist/fresh run return 0
+    execute unless score @s xpeco.pay.to matches 1.. run return run tellraw @s {translate:"xpeco.pay.nopick",fallback:"Pick who to pay first."}
+    scoreboard players operation #amt xpeco.tmp = @s xpeco.pay.amt
+    scoreboard players operation #to xpeco.tmp = @s xpeco.pay.to
+    function xpeco:paylist/clear
+    tag @a remove xpeco.target
+    execute as @a if score @s xpeco.account = #to xpeco.tmp run tag @s add xpeco.target
+    execute if entity @a[tag=xpeco.target] run function xpeco:pay/transfer
+    execute unless entity @a[tag=xpeco.target] run function xpeco:pay/offline
+    tag @a remove xpeco.target
+}
+
+function on_deny {
+    scoreboard players set @s xpeco.pay_deny 0
+    execute unless score @s xpeco.pay.amt matches 1.. run return run tellraw @s {translate:"xpeco.pay.none",fallback:"No pending payment."}
+    function xpeco:paylist/clear
+    tellraw @s {translate:"xpeco.pay.denied",fallback:"Payment cancelled."}
+}
+
+function tick minecraft:tick {
+    scoreboard players enable @a xpeco.pay_to
+    scoreboard players enable @a xpeco.pay_page
+    scoreboard players enable @a xpeco.pay_confirm
+    scoreboard players enable @a xpeco.pay_deny
+    execute as @a[scores={xpeco.pay_to=1..}] run function xpeco:paylist/on_to
+    execute as @a[scores={xpeco.pay_page=1..}] run function xpeco:paylist/on_page
+    execute as @a[scores={xpeco.pay_confirm=1..}] run function xpeco:paylist/on_confirm
+    execute as @a[scores={xpeco.pay_deny=1..}] run function xpeco:paylist/on_deny
+    scoreboard players set @a[scores={xpeco.pay_to=..0}] xpeco.pay_to 0
+    scoreboard players set @a[scores={xpeco.pay_page=..0}] xpeco.pay_page 0
+    scoreboard players set @a[scores={xpeco.pay_confirm=..0}] xpeco.pay_confirm 0
+    scoreboard players set @a[scores={xpeco.pay_deny=..0}] xpeco.pay_deny 0
+}
+
+#endregion
