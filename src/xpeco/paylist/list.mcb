@@ -62,7 +62,7 @@ function rows {
     function xpeco:paylist/list/cell_at
     scoreboard players add #i xpeco.tmp 5
     function xpeco:paylist/list/cell_at
-    execute if data storage xpeco:tmp row[0] run tellraw @s {nbt:"row[]",storage:"xpeco:tmp",interpret:true}
+    execute if data storage xpeco:tmp row[0] run tellraw @s {nbt:"row[]",storage:"xpeco:tmp",interpret:true,separator:""}
     scoreboard players add #r xpeco.tmp 1
     execute if score #r xpeco.tmp matches ..4 run function xpeco:paylist/list/rows
 }
@@ -74,9 +74,16 @@ function cell_at {
 }
 
 function cell_index {
-    $function xpeco:paylist/list/cell with storage xpeco:tmp view[$(i)]
+    # Entries from before colors were kept get white until that player rejoins
+    data modify storage xpeco:tmp cellarg set value {color:"white"}
+    $data modify storage xpeco:tmp cellarg merge from storage xpeco:tmp view[$(i)]
+    function xpeco:paylist/list/cell with storage xpeco:tmp cellarg
 }
 
 function cell {
-    $data modify storage xpeco:tmp row append value {text:"$(name)   ",color:"aqua",click_event:{action:"run_command",command:"/trigger xpeco.pay_to set $(id)"},hover_event:{action:"show_text",value:{text:"Pay $(name)"}}}
+    # The click and hover sit on the parent, so the head and the name both act as the button. No hover text, the line above the grid already says this is a payment. The head is a player object
+    # component resolved from the stored name. Brackets and name take the locator bar color.
+    $data modify storage xpeco:tmp row append value {text:"[",click_event:{action:"run_command",command:"/trigger xpeco.pay_to set $(id)"},color:"$(color)",extra:[{object:"player",player:{name:"$(name)"},color:"white"},{text:" $(name)"},{text:"]"}]}
+    # The gap after the entry is its own component, outside the click, so a miss next to a name does nothing
+    data modify storage xpeco:tmp row append value {text:"   "}
 }

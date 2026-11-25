@@ -1,6 +1,6 @@
 import ../config.js
 
-# Accounts: a stable number per player, plus the name, kept in storage xpeco:accounts as a list of {id,name}. Scoreboards
+# Accounts: a stable number per player, plus the name and locator bar color (see color), kept in storage xpeco:accounts as a list of {id,name,color}. Scoreboards
 # cannot be listed, so the storage is what lets the pay list show offline players. The name comes from a player head:
 # fill_player_head resolves the profile of the player running the modifier.
 function load minecraft:load {
@@ -35,7 +35,7 @@ function assign {
 }
 
 function read_name {
-    # As and at a player. Leaves {id,name} in storage xpeco:tmp entry, without name when the profile did not resolve.
+    # As and at a player. Leaves {id,name,color} in storage xpeco:tmp entry, without name when the profile did not resolve.
     summon minecraft:item ~ ~ ~ {Item:{id:"minecraft:player_head",count:1},PickupDelay:32767s,Tags:["xpeco.head"]}
     item modify entity @e[type=minecraft:item,tag=xpeco.head,distance=..0.1,limit=1] contents xpeco:account/head
     data modify storage xpeco:tmp entry set value {}
@@ -48,17 +48,20 @@ function record {
     function xpeco:account/read_name
     # Without a name the player stays unnamed and this runs again next tick
     execute unless data storage xpeco:tmp entry.name run return 0
+    function xpeco:account/color/compute
     data modify storage xpeco:accounts list append from storage xpeco:tmp entry
     scoreboard players set @s xpeco.named 1
 }
 
-# A player who rejoined may have been renamed, so the stored name is read again. xpeco.left counts leave_game, which is
+# A player who rejoined may have been renamed, so the stored name is read again. An account from before colors were kept
+# gets its color here; the color is never refreshed after that. xpeco.left counts leave_game, which is
 # nonzero on the first tick after the rejoin.
 function on_rejoin {
     scoreboard players set @s xpeco.left 0
     execute unless score @s xpeco.named matches 1 run return 0
     function xpeco:account/read_name
     execute unless data storage xpeco:tmp entry.name run return 0
+    function xpeco:account/color/backfill with storage xpeco:tmp entry
     function xpeco:account/rename with storage xpeco:tmp entry
 }
 

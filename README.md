@@ -30,7 +30,7 @@ Bottles: sneak with a glass bottle in the main hand and right-click an enchantin
 - Config reload: `/reload`, settings come from `config.json` at build time.
 - Display mode: `/scoreboard players set #mode xpeco.cfg <0|1|2>`, points, levels, per hundred.
 - Balance of another player: `/function xpeco:balance/of {target:"@a[name=Steve]"}`, any selector, online players only.
-- Accounts: every player gets a number and a stored name on first tick online with the pack, kept in `xpeco:accounts`. The pay list shows these, offline players included, and a payment to an offline account goes through the pending ledger. A renamed player is updated on their next rejoin, and credits waiting under the old name move to the new one.
+- Accounts: every player gets a number and a stored name on first tick online with the pack, kept in `xpeco:accounts`. The pay list shows these, offline players included, and a payment to an offline account goes through the pending ledger. A renamed player is updated on their next rejoin, and credits waiting under the old name move to the new one. Each list entry is `[head name]` with the player head, in the color of their locator bar icon: an explicit icon color if set, else the UUID-derived default the client uses. Team colors are not read, and the color is stored once, so a later change to the icon color does not show. Only the entry is clickable, not the gap after it.
 - Pay by name, online or offline: `/function xpeco:pay/to_name {to:"Name",amount:5}`, needs permission level 2.
 - Uninstall: `/function xpeco:uninstall`, removes objectives and tags, then disables the pack.
 
