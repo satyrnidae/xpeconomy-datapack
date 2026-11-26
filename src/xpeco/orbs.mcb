@@ -1,18 +1,51 @@
 # Splits a number of points into random-size experience orbs and spawns them, with vanilla-like motion turned away from a
 # surface. Shared by the thrown bottles and the death shower. Every orb is tagged xpeco.orb so other code can leave ours alone.
-# Call split at the spawn point with #left set to the points and #nx #ny #nz set to the surface normal, only its sign matters.
+# Call split or lump at the spawn point with #left set to the points and #nx #ny #nz set to the surface normal, only its sign
+# matters. Split makes random sizes, lump one large orb for amounts too big to split.
 
 function uninstall xpeco:uninstall {
     tag @e[type=minecraft:experience_orb] remove xpeco.orb
 }
 
 function split {
-    # Takes a random 1..#left share, spawns it, repeats until #left is spent
+    # Takes a random 1..#left share, spawns it, repeats until #left is spent. A share is 1000 at most, so a big #left would
+    # spawn a great many orbs; lump is for those.
     execute store result score #r xpeco.tmp run random value 1..1000
     eq #r xpeco.tmp %= #left xpeco.tmp
     eq #r xpeco.tmp += 1
     eq #left xpeco.tmp -= #r xpeco.tmp
     execute store result storage xpeco:tmp value int 1 run scoreboard players get #r xpeco.tmp
+    data modify storage xpeco:tmp count set value 1
+    function xpeco:orbs/roll
+    function xpeco:orbs/spawn with storage xpeco:tmp
+    execute if score #left xpeco.tmp matches 1.. run function xpeco:orbs/split
+}
+
+function lump {
+    # Spawns #left as one large orb, or two for more than 32767. The Value of an orb is saved as a short, so 32767 is the
+    # most one holds; an orb also has a Count, so a bigger amount is Count orbs of 32767 in one entity, then one with the rest.
+    eq #cnt xpeco.tmp = #left xpeco.tmp / 32767
+    eq #left xpeco.tmp %= 32767
+    execute if score #cnt xpeco.tmp matches 1.. run function xpeco:orbs/lump_full
+    execute if score #left xpeco.tmp matches 1.. run function xpeco:orbs/lump_rest
+}
+
+function lump_full {
+    data modify storage xpeco:tmp value set value 32767
+    execute store result storage xpeco:tmp count int 1 run scoreboard players get #cnt xpeco.tmp
+    function xpeco:orbs/roll
+    function xpeco:orbs/spawn with storage xpeco:tmp
+}
+
+function lump_rest {
+    execute store result storage xpeco:tmp value int 1 run scoreboard players get #left xpeco.tmp
+    data modify storage xpeco:tmp count set value 1
+    function xpeco:orbs/roll
+    function xpeco:orbs/spawn with storage xpeco:tmp
+    scoreboard players set #left xpeco.tmp 0
+}
+
+function roll {
     # Motion as the vanilla orb constructor rolls it: x and z within 0.2, y 0 to 0.4, flipped when it points into the surface
     REPEAT ({x: '-2000..2000', y: '0..4000', z: '-2000..2000'}) as a, range {
         execute store result score #r<%a%> xpeco.tmp run random value <%range%>
@@ -21,8 +54,6 @@ function split {
     REPEAT (['x', 'y', 'z']) as a {
         execute store result storage xpeco:tmp m<%a%> double 0.0001 run scoreboard players get #r<%a%> xpeco.tmp
     }
-    function xpeco:orbs/spawn with storage xpeco:tmp
-    execute if score #left xpeco.tmp matches 1.. run function xpeco:orbs/split
 }
 
 function orient {
@@ -38,5 +69,5 @@ function flip {
 }
 
 function spawn {
-    $summon minecraft:experience_orb ~ ~ ~ {Value:$(value),Motion:[$(mx),$(my),$(mz)],Tags:["xpeco.orb"]}
+    $summon minecraft:experience_orb ~ ~ ~ {Value:$(value),Count:$(count),Motion:[$(mx),$(my),$(mz)],Tags:["xpeco.orb"]}
 }

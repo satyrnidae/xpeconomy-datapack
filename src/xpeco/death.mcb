@@ -56,7 +56,8 @@ function init_shower {
 }
 
 function shower_tick {
-    # As and at a shower marker. An even share of what is left each tick, the last tick takes the rest. The bottle orbs are
+    # As and at a shower marker. An even share of what is left each tick, the last tick takes the rest. A share up to deathLumpPoints is split into random orbs like a
+    # bottle's, a bigger one is a single large orb, so a huge total cannot spawn a huge number of entities. The bottle orbs are
     # told the surface faces up, so they all fly upward.
     scoreboard players operation #left xpeco.tmp = @s xpeco.shower
     scoreboard players operation #left xpeco.tmp /= @s xpeco.shower_t
@@ -65,7 +66,8 @@ function shower_tick {
     scoreboard players set #nx xpeco.tmp 0
     scoreboard players set #ny xpeco.tmp 1
     scoreboard players set #nz xpeco.tmp 0
-    execute if score #left xpeco.tmp matches 1.. run function xpeco:orbs/split
+    execute if score #left xpeco.tmp matches 1..<%config.deathLumpPoints%> run function xpeco:orbs/split
+    execute if score #left xpeco.tmp matches <%config.deathLumpPoints + 1%>.. run function xpeco:orbs/lump
     execute if score @s xpeco.shower_t matches ..0 run kill @s
 }
 

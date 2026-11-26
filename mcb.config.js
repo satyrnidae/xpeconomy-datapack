@@ -18,6 +18,8 @@ module.exports = {
         // Speed of a thrown bottle in blocks per tick, a vanilla experience bottle is 0.7
         bottleThrowSpeed: 0.7,
         dropAllOnDeath: false,
-        deathShowerTicks: 20
+        deathShowerTicks: 20,
+        // Largest share per tick of the death shower that is split into random orbs, a bigger one is a single orb. 1 or more.
+        deathLumpPoints: 64
     }
 };
