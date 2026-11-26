@@ -17,11 +17,13 @@ prefix so they stay out of the way of players typing commands, they are meant to
 |---|---|
 | `/trigger balance` | Prints your balance in the configured mode |
 | `/trigger pay set <amount>` | Pays the player you are looking at, or lists every account to pick from when nobody is in the crosshair. Either way it asks to confirm first, with a button to pick someone else instead, and the prompt expires after 30 seconds |
-| `/trigger request set <amount>` | Asks the player you are looking at, with chat buttons, expires after 30 seconds |
+| `/trigger request set <amount>` | Asks the player you are looking at, or lists the players who are online to pick from when nobody is in the crosshair. The request has chat buttons and expires after 30 seconds |
 | `/trigger xpeco.accept_charges` | Pays a pending request, run by the chat button |
 | `/trigger xpeco.decline_payment` | Declines a pending request, run by the chat button |
-| `/trigger xpeco.pay_to set <id>` | Picks an account from the list, run by the chat button |
-| `/trigger xpeco.pay_page set <n>` | Shows a page of the list, 15 names a page in three columns |
+| `/trigger xpeco.pay_to set <id>` | Picks an account from the pay list, run by the chat button |
+| `/trigger xpeco.pay_page set <n>` | Shows a page of the pay list, 15 names a page in three columns |
+| `/trigger xpeco.req_to set <id>` | Picks an online player from the request list, run by the chat button |
+| `/trigger xpeco.req_page set <n>` | Shows a page of the request list |
 | `/trigger xpeco.pay_confirm` | Sends the pending payment, run by the chat button |
 | `/trigger xpeco.pay_deny` | Cancels the pending payment, run by the chat button |
 

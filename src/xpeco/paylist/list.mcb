@@ -1,11 +1,26 @@
 import ../../text/pay.js
-# The paged account list: every account but the payer's own, 15 a page in three columns of five.
+import ../../text/request.js
+# The paged account list, 15 a page in three columns of five. Pay shows every account but the payer's own. Request shows
+# the players who are online, since a request can only reach someone who is. The kind in storage xpeco:tmp, pay or req,
+# picks the trigger the entries run, the heading and which accounts are listed.
 
 function show {
     # As the payer. Shows the page in xpeco.pay.page.
+    data modify storage xpeco:tmp kind set value "pay"
+    function xpeco:paylist/list/page
+}
+
+function show_req {
+    # As the requester. Shows the page in xpeco.pay.page, the page number is shared with pay.
+    data modify storage xpeco:tmp kind set value "req"
+    function xpeco:paylist/list/page
+}
+
+function page {
     function xpeco:paylist/list/build_view
     execute store result score #n xpeco.tmp run data get storage xpeco:tmp view
-    execute if score #n xpeco.tmp matches 0 run return run tellraw @s <%payText.empty%>
+    execute if score #n xpeco.tmp matches 0 if data storage xpeco:tmp {kind:"pay"} run return run tellraw @s <%payText.empty%>
+    execute if score #n xpeco.tmp matches 0 run return run tellraw @s <%requestText.empty%>
     eq #pages xpeco.tmp = (#n xpeco.tmp + 14) / 15
     eq #p xpeco.tmp = @s xpeco.pay.page
     execute if score #p xpeco.tmp matches ..0 run scoreboard players set #p xpeco.tmp 1
@@ -13,7 +28,8 @@ function show {
     eq @s xpeco.pay.page = #p xpeco.tmp
     eq #start xpeco.tmp = (#p xpeco.tmp - 1) * 15
 
-    tellraw @s <%payText.pick%>
+    execute if data storage xpeco:tmp {kind:"pay"} run tellraw @s <%payText.pick%>
+    execute if data storage xpeco:tmp {kind:"req"} run tellraw @s <%requestText.pick%>
     scoreboard players set #r xpeco.tmp 0
     function xpeco:paylist/list/rows
 
@@ -34,7 +50,7 @@ function footer {
 }
 
 function build_view {
-    # View is every account but the payer's own, in the order they were first seen
+    # View is every account but the player's own, in the order they were first seen. For request only those online.
     data modify storage xpeco:tmp view set value []
     data modify storage xpeco:tmp rest set from storage xpeco:accounts list
     function xpeco:paylist/list/build_next
@@ -43,9 +59,18 @@ function build_view {
 function build_next {
     execute unless data storage xpeco:tmp rest[0] run return 0
     execute store result score #cid xpeco.tmp run data get storage xpeco:tmp rest[0].id
-    execute unless score #cid xpeco.tmp = @s xpeco.account run data modify storage xpeco:tmp view append from storage xpeco:tmp rest[0]
+    scoreboard players set #keep xpeco.tmp 1
+    execute if data storage xpeco:tmp {kind:"req"} run function xpeco:paylist/list/online_only
+    execute if score #cid xpeco.tmp = @s xpeco.account run scoreboard players set #keep xpeco.tmp 0
+    execute if score #keep xpeco.tmp matches 1 run data modify storage xpeco:tmp view append from storage xpeco:tmp rest[0]
     data remove storage xpeco:tmp rest[0]
     function xpeco:paylist/list/build_next
+}
+
+function online_only {
+    # With #cid set. Leaves #keep 1 only when a player with that account is online.
+    scoreboard players set #keep xpeco.tmp 0
+    execute as @a if score @s xpeco.account = #cid xpeco.tmp run scoreboard players set #keep xpeco.tmp 1
 }
 
 function rows {
@@ -70,6 +95,7 @@ function cell_at {
 function cell_index {
     # Entries from before colors were kept get white until that player rejoins
     data modify storage xpeco:tmp cellarg set value {color:"white"}
+    data modify storage xpeco:tmp cellarg.kind set from storage xpeco:tmp kind
     $data modify storage xpeco:tmp cellarg merge from storage xpeco:tmp view[$(i)]
     function xpeco:paylist/list/cell with storage xpeco:tmp cellarg
 }

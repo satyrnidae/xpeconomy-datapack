@@ -5,7 +5,11 @@ const amt = score('#amt', 'xpeco.tmp');
 
 module.exports = {
   requestText: {
-    notarget: say('xpeco.request.notarget', 'Look at the player you want to ask.'),
+    pick: json(tr('xpeco.request.pick', 'Request %s points from, page %s of %s:', score('@s', 'xpeco.req.out'), score('#p', 'xpeco.tmp'), score('#pages', 'xpeco.tmp'))),
+    empty: say('xpeco.request.empty', 'Nobody else is online to ask.'),
+    offline: say('xpeco.request.offline', 'That player is not online.'),
+    self: say('xpeco.request.self', 'You cannot request from yourself.'),
+    menuExpired: say('xpeco.request.menu.expired', 'The player list expired.'),
     sent: json(tr('xpeco.request.sent', 'Requested %s points from %s.', amt, target)),
     // What the target sees, with the buttons on the same line as the ask
     received: json([

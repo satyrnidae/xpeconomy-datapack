@@ -36,9 +36,9 @@ module.exports = {
 
     // Page buttons under the list
     footer: json([
-      button('< Prev', 'gray', '/trigger xpeco.pay_page set $(prev)'),
+      button('< Prev', 'gray', '/trigger xpeco.$(kind)_page set $(prev)'),
       gap(2),
-      button('Next >', 'gray', '/trigger xpeco.pay_page set $(next)'),
+      button('Next >', 'gray', '/trigger xpeco.$(kind)_page set $(next)'),
     ]),
 
     // One list entry. Brackets, head and name are the click target and take the player's locator bar color. The head stays
@@ -46,7 +46,7 @@ module.exports = {
     cell: json({
       text: '[',
       color: '$(color)',
-      click_event: { action: 'run_command', command: '/trigger xpeco.pay_to set $(id)' },
+      click_event: { action: 'run_command', command: '/trigger xpeco.$(kind)_to set $(id)' },
       extra: [{ object: 'player', player: { name: '$(name)' }, color: 'white' }, text(' $(name)'), text(']')],
     }),
     cellGap: json(gap(3)),

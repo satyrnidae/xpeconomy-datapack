@@ -45,13 +45,18 @@ function on_deny {
 # single scan, and dispatch runs the handler of each trigger that is set. A negative score came from a typed command, so it
 # is just reset.
 predicate fired {
-    <%nonzero(['xpeco.pay_to', 'xpeco.pay_page', 'xpeco.pay_confirm', 'xpeco.pay_deny'])%>
+    <%nonzero(['xpeco.pay_to', 'xpeco.pay_page', 'xpeco.pay_confirm', 'xpeco.pay_deny', 'xpeco.req_to', 'xpeco.req_page'])%>
 }
 
 function dispatch {
     REPEAT (['to', 'page', 'confirm', 'deny']) as t {
         execute if score @s xpeco.pay_<%t%> matches 1.. run function xpeco:paylist/triggers/on_<%t%>
         execute if score @s xpeco.pay_<%t%> matches ..-1 run scoreboard players set @s xpeco.pay_<%t%> 0
+    }
+    # The request list buttons. Their handlers are in request.
+    REPEAT (['to', 'page']) as t {
+        execute if score @s xpeco.req_<%t%> matches 1.. run function xpeco:request/on_<%t%>
+        execute if score @s xpeco.req_<%t%> matches ..-1 run scoreboard players set @s xpeco.req_<%t%> 0
     }
 }
 

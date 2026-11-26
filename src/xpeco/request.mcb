@@ -6,14 +6,22 @@ function load minecraft:load {
     scoreboard objectives add xpeco.req.from dummy
     scoreboard objectives add xpeco.req.amt dummy
     scoreboard objectives add xpeco.req.at dummy
+    scoreboard objectives add xpeco.req.out dummy
+    scoreboard objectives add xpeco.req.out_at dummy
     scoreboard objectives add request trigger
+    scoreboard objectives add xpeco.req_to trigger
+    scoreboard objectives add xpeco.req_page trigger
 }
 
 function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.req.from
     scoreboard objectives remove xpeco.req.amt
     scoreboard objectives remove xpeco.req.at
+    scoreboard objectives remove xpeco.req.out
+    scoreboard objectives remove xpeco.req.out_at
     scoreboard objectives remove request
+    scoreboard objectives remove xpeco.req_to
+    scoreboard objectives remove xpeco.req_page
 }
 
 function run {
@@ -22,13 +30,61 @@ function run {
     scoreboard players operation #amt xpeco.tmp = @s request
     scoreboard players set @s request 0
     function xpeco:target/find
-    execute unless entity @a[tag=xpeco.target] run return run tellraw @s <%requestText.notarget%>
+    execute if entity @a[tag=xpeco.target] run return run function xpeco:request/send
+    # Nobody in the crosshair: offer the players who are online. The amount waits in xpeco.req.out until one is picked.
+    scoreboard players operation @s xpeco.req.out = #amt xpeco.tmp
+    execute store result score @s xpeco.req.out_at run time query gametime
+    scoreboard players set @s xpeco.pay.page 1
+    function xpeco:paylist/list/show_req
+}
+
+function send {
+    # As the requester, with #amt set and the target tagged xpeco.target
     scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.from = @s xpeco.account
     scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.amt = #amt xpeco.tmp
     execute store result score @a[tag=xpeco.target,limit=1] xpeco.req.at run time query gametime
     tellraw @a[tag=xpeco.target,limit=1] <%requestText.received%>
     tellraw @s <%requestText.sent%>
     tag @a remove xpeco.target
+}
+
+function fresh_out {
+    # As a requester. Succeeds when a list is waiting for a pick and has not expired, otherwise says why and fails.
+    execute unless score @s xpeco.req.out matches 1.. run return run function xpeco:request/no_menu
+    execute store result score #now xpeco.tmp run time query gametime
+    scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
+    scoreboard players operation #age xpeco.tmp -= @s xpeco.req.out_at
+    execute if score #age xpeco.tmp < #expire xpeco.cfg run return 1
+    scoreboard players set @s xpeco.req.out 0
+    tellraw @s <%requestText.menuExpired%>
+    return 0
+}
+
+function no_menu {
+    tellraw @s <%requestText.none%>
+    return 0
+}
+
+function on_to {
+    # As a player who clicked a name in the request list. The score is the account id. Only players who were online were
+    # listed, so a player who left since is refused here and the list stays open for another pick.
+    scoreboard players operation #to xpeco.tmp = @s xpeco.req_to
+    scoreboard players set @s xpeco.req_to 0
+    execute unless function xpeco:request/fresh_out run return 0
+    execute if score #to xpeco.tmp = @s xpeco.account run return run tellraw @s <%requestText.self%>
+    tag @a remove xpeco.target
+    execute as @a if score @s xpeco.account = #to xpeco.tmp run tag @s add xpeco.target
+    execute unless entity @a[tag=xpeco.target] run return run tellraw @s <%requestText.offline%>
+    scoreboard players operation #amt xpeco.tmp = @s xpeco.req.out
+    scoreboard players set @s xpeco.req.out 0
+    function xpeco:request/send
+}
+
+function on_page {
+    scoreboard players operation @s xpeco.pay.page = @s xpeco.req_page
+    scoreboard players set @s xpeco.req_page 0
+    execute unless function xpeco:request/fresh_out run return 0
+    function xpeco:paylist/list/show_req
 }
 
 function check_expiry {
