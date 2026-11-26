@@ -58,7 +58,7 @@ Empty bottles can be filled at an enchantment table with experience points by ho
 
 The amount of XP can be configured by an operator to any value you like. See [Scoreboard configuration](#scoreboard-configuration) for additional details.
 
-#### Filled Bottle o' Enchanting
+#### Filled bottle o' enchanting
 
 Works similarly to a Bottle o' Enchanting, but with some key differences:
 - It will always drop the same number of experience points used to fill it
