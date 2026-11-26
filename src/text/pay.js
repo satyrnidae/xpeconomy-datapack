@@ -10,11 +10,6 @@ module.exports = {
     sentTo: json(tr('xpeco.pay.sent', 'Paid %s %s points.', text('$(name)'), text('$(amount)'))),
     received: json(tr('xpeco.pay.received', '%s paid you %s points.', sel('@s'), amt)),
 
-    // Ops only, /function xpeco:pay/to_name
-    mustBePositive: json(text('Amount must be positive.')),
-    notEnough: json(text('Not enough experience.')),
-    paidName: json(text('Paid $(to) $(amount) points.')),
-
     none: say('xpeco.pay.none', 'No pending payment.'),
     expired: say('xpeco.pay.expired', 'The payment expired.'),
     denied: say('xpeco.pay.denied', 'Payment cancelled.'),
