@@ -29,8 +29,6 @@ Plugin operator commands have also been reimplemented, some behind function comm
 | Command | Action |
 |---------|--------|
 | `/experience` | Also, `/xp`. Built-in Minecraft command which can be used to modify player XP. |
-| `/scoreboard players set #mode xpeco.cfg <0\|1\|2>` | Set the currency display mode to points, levels, or per-hundred-points. |
-| `/scoreboard players set #deathdrop xpeco.cfg <0\|1>` | Toggle the [Drop All XP on Death feature](#drop-all-xp-on-death). See also: [Scoreboard configuration](#scoreboard-configuration) |
 | `/function xpeco:balance/of with entity <player>` | Gets the balance of another (online-only) player. |
 | `/function xpeco:uninstall` | Uninstallation function. Removes all scoreboards and disables the pack. |
 
