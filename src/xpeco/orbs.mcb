@@ -2,7 +2,7 @@
 # surface. Shared by the thrown bottles and the death shower. Every orb is tagged xpeco.orb so other code can leave ours alone.
 # Call split at the spawn point with #left set to the points and #nx #ny #nz set to the surface normal, only its sign matters.
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     tag @e[type=minecraft:experience_orb] remove xpeco.orb
 }
 

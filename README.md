@@ -56,4 +56,4 @@ Repeated code uses mcb's compile-time features: `REPEAT` for the per-axis and pe
 
 Selectors that need "not zero" or "no score yet" use predicates, since a selector score range cannot say either. `src/xpeco/predicate.js` builds the any_of predicate for a set of objectives. Pending credits, the pay list buttons, the request and reply buttons and pay each find their players with one predicate scan, and `account/named` selects players with no recorded name.
 
-Ticking: `xpeco:master` is the only function in `minecraft:tick`. It reads game time once, sets the throttle phases `#n2` and `#n20` in `xpeco.tmp`, then calls the function tag `#xpeco:tick`, where each module registers its own tick with `function tick xpeco:tick`. A module throttles itself with `execute if score #n20 xpeco.tmp matches 0 run ...`.
+Ticking: `xpeco:tick` is the only function in `minecraft:tick`. It reads game time once, sets the throttle phases `#n2` and `#n20` in `xpeco.tmp`, then calls the function tag `#xpeco:tick`, where each module registers its own tick with `function tick xpeco:tick`. A module throttles itself with `execute if score #n20 xpeco.tmp matches 0 run ...`.

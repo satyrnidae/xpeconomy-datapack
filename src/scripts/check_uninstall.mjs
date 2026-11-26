@@ -1,4 +1,4 @@
-// Every objective the pack adds must be removed by xpeco:uninstall or a function in #xpeco:on_uninstall.
+// Every objective the pack adds must be removed by xpeco:uninstall or a function in #xpeco:uninstall.
 // Every tag the pack adds must be removed there too.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,7 +9,7 @@ const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
 
 const id = (f) => 'xpeco:' + path.relative(fnRoot, f).split(path.sep).join('/').replace('.mcfunction', '');
 const files = walk(fnRoot).map((f) => ({ id: id(f), lines: fs.readFileSync(f, 'utf8').split(/\r?\n/) }));
-const tag = JSON.parse(fs.readFileSync('data/xpeco/tags/function/on_uninstall.json', 'utf8')).values;
+const tag = JSON.parse(fs.readFileSync('data/xpeco/tags/function/uninstall.json', 'utf8')).values;
 
 const uninstallIds = new Set([...tag, 'xpeco:uninstall']);
 const all = files.flatMap((f) => f.lines.map((l) => ({ id: f.id, l })));

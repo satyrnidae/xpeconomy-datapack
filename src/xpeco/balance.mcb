@@ -6,7 +6,7 @@ function load minecraft:load {
     scoreboard objectives add balance trigger
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     scoreboard objectives remove balance
 }
 

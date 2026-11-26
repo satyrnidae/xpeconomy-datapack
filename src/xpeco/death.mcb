@@ -14,7 +14,7 @@ function load minecraft:load {
     execute unless score #deathdrop xpeco.cfg = #deathdrop xpeco.cfg run scoreboard players set #deathdrop xpeco.cfg <%config.dropAllOnDeath ? 1 : 0%>
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.deaths
     scoreboard objectives remove xpeco.shower
     scoreboard objectives remove xpeco.shower_t

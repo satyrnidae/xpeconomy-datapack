@@ -10,7 +10,7 @@ import ../../config.js
 #  Side effects while it is there: the table cannot be broken, and other players near it get the entity click instead of
 #  the menu.
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     kill @e[type=minecraft:interaction,tag=xpeco.bottle.table]
     advancement revoke @a only xpeco:bottle/table/on_interact
 }

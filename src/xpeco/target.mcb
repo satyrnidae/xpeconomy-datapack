@@ -56,7 +56,7 @@ function ray {
     execute unless entity @a[tag=xpeco.target] if score #steps xpeco.tmp matches 1.. if block ~ ~ ~ #xpeco:target/ray_pass positioned ^ ^ ^0.25 run function xpeco:target/ray
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     tag @a remove xpeco.self
     tag @a remove xpeco.target
 }

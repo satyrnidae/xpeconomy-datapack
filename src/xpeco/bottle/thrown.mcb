@@ -15,7 +15,7 @@ function load minecraft:load {
     }
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.bottle_prev
     REPEAT (['xpeco.trace_px', 'xpeco.trace_py', 'xpeco.trace_pz', 'xpeco.trace_vx', 'xpeco.trace_vy', 'xpeco.trace_vz']) as o {
         scoreboard objectives remove <%o%>

@@ -8,7 +8,7 @@ function load minecraft:load {
     scoreboard objectives add xpeco.decline_payment trigger
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.accept_charges
     scoreboard objectives remove xpeco.decline_payment
 }

@@ -6,7 +6,7 @@ function load minecraft:load {
     scoreboard objectives add xpeco.total dummy
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.lvl
     scoreboard objectives remove xpeco.pts
     scoreboard objectives remove xpeco.total

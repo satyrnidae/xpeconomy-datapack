@@ -10,7 +10,7 @@ function load minecraft:load {
     execute unless data storage xpeco:accounts list run data modify storage xpeco:accounts list set value []
 }
 
-function on_uninstall xpeco:on_uninstall {
+function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.account
     scoreboard objectives remove xpeco.named
     scoreboard objectives remove xpeco.left
