@@ -60,7 +60,7 @@ The amount of XP can be configured by an operator to any value you like. See [Sc
 
 #### Filled Bottle o' Enchanting
 
-Works similarly to an Bottle o' Enchanting, but with some key differences:
+Works similarly to a Bottle o' Enchanting, but with some key differences:
 - It will always drop the same number of experience points used to fill it
 - Can only be thrown while you are not sneaking
 - Can be consumed while sneaking to fill experience points directly
