@@ -1,0 +1,85 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # The game side checks of npm run check need the 26.3 client jar and a local harness, so only these run here
+      - name: Build datapack
+        run: npm run build
+
+      - name: Check formulas and uninstall
+        run: |
+          node src/scripts/check_formula.mjs
+          node src/scripts/check_uninstall.mjs
+
+      - name: Read version
+        id: version
+        run: echo "version=$(node -p "require('./mcb.config.js').settings.version")" >> "$GITHUB_OUTPUT"
+
+      # pack.mcmeta and data/ sit at the top of the zip, which is what the datapacks folder expects
+      - name: Zip datapack
+        run: zip -r "experience_economy_${{ steps.version.outputs.version }}.zip" pack.mcmeta data LICENSE
+
+      - name: Zip resource pack
+        working-directory: resourcepack
+        run: zip -r "../experience_economy_resourcepack_${{ steps.version.outputs.version }}.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experience_economy_${{ steps.version.outputs.version }}
+          path: experience_economy_${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experience_economy_resourcepack_${{ steps.version.outputs.version }}
+          path: experience_economy_resourcepack_${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+
+  # Runs on a v* tag only: checks the tag against the pack version, then publishes a release with both zips
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Check tag against the zip version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for f in "experience_economy_${version}.zip" "experience_economy_resourcepack_${version}.zip"; do
+            test -f "$f" || { echo "::error::$f not found, the tag $GITHUB_REF_NAME does not match the version in mcb.config.js"; exit 1; }
+          done
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "experience_economy_${version}.zip" \
+            "experience_economy_resourcepack_${version}.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
