@@ -1,7 +1,8 @@
 # xpeconomy-dp
 
+*TODO: reword and streamline this generated draft*
+
 Plugin-free XP currency for Minecraft 26.3, built with mc-build. Balance is live XP, so there is no separate ledger.
-Design notes and feasibility are in [datapack-feasibility.md](datapack-feasibility.md).
 
 ## AI use disclosure
 
