@@ -32,15 +32,16 @@ function uninstall {
 
     data remove storage xpeco:tmp amount
 
-    execute store success score #uninstall xpeco.cfg run datapack disable "file/<%config.packName%>"
-    execute unless score #uninstall xpeco.cfg matches 1 run tellraw @s <%coreText.packFolder%>
-    execute if score #uninstall xpeco.cfg matches 1 run tellraw @s <%coreText.uninstalled%>
-
     scoreboard objectives remove xpeco.tmp
-    scoreboard objectives remove xpeco.cfg
     REPEAT (eqObjectives) as objective {
         scoreboard objectives remove <%objective%>
     }
+
+    # xpeco.cfg goes last, it holds the result of the disable that the messages below read
+    execute store success score #uninstall xpeco.cfg run datapack disable "file/<%config.packName%>"
+    execute unless score #uninstall xpeco.cfg matches 1 run tellraw @s <%coreText.packFolder%>
+    execute if score #uninstall xpeco.cfg matches 1 run tellraw @s <%coreText.uninstalled%>
+    scoreboard objectives remove xpeco.cfg
 }
 
 # Every module registers its tick in the function tag xpeco:tick, and this is the only function in minecraft:tick. It reads
