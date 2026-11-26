@@ -49,7 +49,8 @@ function landed {
     # As and at a tracker whose snowball is gone
     function xpeco:bottle/thrown/splash
     function xpeco:bottle/normal/normal
-    scoreboard players set #left xpeco.tmp <%config.bottlePoints%>
+    function xpeco:bottle/clamp
+    scoreboard players operation #left xpeco.tmp = #bottlepoints xpeco.cfg
     function xpeco:orbs/split
     kill @s
 }

@@ -38,7 +38,13 @@ REPEAT (['drink', 'throw']) as mode {
 
 function drink {
     advancement revoke @s only xpeco:bottle/use/on_drink
-    experience add @s <%config.bottlePoints%> points
+    function xpeco:bottle/clamp
+    execute store result storage xpeco:tmp points int 1 run scoreboard players get #bottlepoints xpeco.cfg
+    function xpeco:bottle/use/drink_add with storage xpeco:tmp
+}
+
+function drink_add {
+    $experience add @s $(points) points
 }
 
 function throw {
