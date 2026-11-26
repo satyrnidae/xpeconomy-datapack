@@ -53,7 +53,8 @@ jobs:
           path: experience_economy_resourcepack_${{ steps.version.outputs.version }}.zip
           if-no-files-found: error
 
-  # Runs on a v* tag only: checks the tag against the pack version, then publishes a release with both zips
+  # Runs on a v* tag only. The tag may carry a prerelease suffix, v0.2.0-rc.1, and its version before the suffix has to match
+  # mcb.config.js. A suffix makes it a prerelease and goes into the zip names, so release candidates do not share a name.
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -65,21 +66,19 @@ jobs:
         with:
           merge-multiple: true
 
-      - name: Check tag against the zip version
+      - name: Check the tag and name the zips
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          for f in "experience_economy_${version}.zip" "experience_economy_resourcepack_${version}.zip"; do
-            test -f "$f" || { echo "::error::$f not found, the tag $GITHUB_REF_NAME does not match the version in mcb.config.js"; exit 1; }
+          tag="${GITHUB_REF_NAME#v}"
+          base="${tag%%-*}"
+          for kind in experience_economy experience_economy_resourcepack; do
+            test -f "${kind}_${base}.zip" || { echo "::error::${kind}_${base}.zip not found, the tag ${GITHUB_REF_NAME} does not match the version in mcb.config.js"; exit 1; }
+            test "${base}" = "${tag}" || mv "${kind}_${base}.zip" "${kind}_${tag}.zip"
           done
+          if [ "${base}" = "${tag}" ]; then echo "prerelease=" >> "$GITHUB_ENV"; else echo "prerelease=--prerelease" >> "$GITHUB_ENV"; fi
 
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" \
-            "experience_economy_${version}.zip" \
-            "experience_economy_resourcepack_${version}.zip" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes
+          tag="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME"             "experience_economy_${tag}.zip"             "experience_economy_resourcepack_${tag}.zip"             --repo "$GITHUB_REPOSITORY"             --title "$GITHUB_REF_NAME"             --generate-notes $prerelease
