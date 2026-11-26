@@ -27,10 +27,15 @@ function on_uninstall xpeco:on_uninstall {
     scoreboard objectives remove xpeco.pay_deny
 }
 
+function none {
+    # As a player with no payment pending. Fails, so the caller of fresh stops. A return in a block would only leave the block.
+    tellraw @s <%payText.none%>
+    return 0
+}
+
 function fresh {
     # As a player. Succeeds when there is a payment that has not expired, otherwise says why and fails.
-    execute unless score @s xpeco.pay.amt matches 1.. run tellraw @s <%payText.none%>
-    execute unless score @s xpeco.pay.amt matches 1.. run return 0
+    execute unless score @s xpeco.pay.amt matches 1.. run return run function xpeco:paylist/none
     execute store result score #now xpeco.tmp run time query gametime
     scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
     scoreboard players operation #age xpeco.tmp -= @s xpeco.pay.at

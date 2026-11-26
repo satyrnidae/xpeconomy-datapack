@@ -1,10 +1,12 @@
-# The replacement orbs: exactly bottlePoints, split at random, with vanilla-like motion turned away from the surface.
+# Splits a number of points into random-size experience orbs and spawns them, with vanilla-like motion turned away from a
+# surface. Shared by the thrown bottles and the death shower. Every orb is tagged xpeco.orb so other code can leave ours alone.
+# Call split at the spawn point with #left set to the points and #nx #ny #nz set to the surface normal, only its sign matters.
 
 function on_uninstall xpeco:on_uninstall {
-    tag @e[type=minecraft:experience_orb] remove xpeco.filled_bauble
+    tag @e[type=minecraft:experience_orb] remove xpeco.orb
 }
 
-function orb_next {
+function split {
     # Takes a random 1..#left share, spawns it, repeats until #left is spent
     execute store result score #r xpeco.tmp run random value 1..1000
     eq #r xpeco.tmp %= #left xpeco.tmp
@@ -15,18 +17,18 @@ function orb_next {
     REPEAT ({x: '-2000..2000', y: '0..4000', z: '-2000..2000'}) as a, range {
         execute store result score #r<%a%> xpeco.tmp run random value <%range%>
     }
-    function xpeco:bottle/orbs/orient
+    function xpeco:orbs/orient
     REPEAT (['x', 'y', 'z']) as a {
         execute store result storage xpeco:tmp m<%a%> double 0.0001 run scoreboard players get #r<%a%> xpeco.tmp
     }
-    function xpeco:bottle/orbs/orb with storage xpeco:tmp
-    execute if score #left xpeco.tmp matches 1.. run function xpeco:bottle/orbs/orb_next
+    function xpeco:orbs/spawn with storage xpeco:tmp
+    execute if score #left xpeco.tmp matches 1.. run function xpeco:orbs/split
 }
 
 function orient {
     # Dot product of the roll with the normal; a negative one points into the surface, so negate the whole roll
     eq #dot xpeco.tmp = #rx xpeco.tmp * #nx xpeco.tmp + #ry xpeco.tmp * #ny xpeco.tmp + #rz xpeco.tmp * #nz xpeco.tmp
-    execute if score #dot xpeco.tmp matches ..-1 run function xpeco:bottle/orbs/flip
+    execute if score #dot xpeco.tmp matches ..-1 run function xpeco:orbs/flip
 }
 
 function flip {
@@ -35,6 +37,6 @@ function flip {
     }
 }
 
-function orb {
-    $summon minecraft:experience_orb ~ ~ ~ {Value:$(value),Motion:[$(mx),$(my),$(mz)],Tags:["xpeco.filled_bauble"]}
+function spawn {
+    $summon minecraft:experience_orb ~ ~ ~ {Value:$(value),Motion:[$(mx),$(my),$(mz)],Tags:["xpeco.orb"]}
 }

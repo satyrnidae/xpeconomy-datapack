@@ -4,7 +4,7 @@ import ../../config.js
 #  used stat, so tick finds the thrown entity by that data instead; the Item stack is copied onto it. Bottles without the
 #  data are tagged xpeco.ignored on first sight so they cost no more lookups. Each one gets a marker riding it. When the
 #  marker has no vehicle the bottle has landed: the vanilla orbs within 3 blocks go and exactly bottlePoints of orbs,
-#  split at random, take their place. Orbs we spawn are tagged xpeco.filled_bauble and are left alone, so bottles landing
+#  split at random, take their place. Orbs we spawn are tagged xpeco.orb and are left alone, so bottles landing
 #  together do not kill each other's orbs. Orbs from other sources near the impact still go.
 
 # Total points of a player near a bottle in flight, from the last tick
@@ -98,11 +98,11 @@ function trace_speed {
 function landed {
     # As and at a tracker whose bottle is gone
     execute as @a[distance=..3,scores={xpeco.bottle_prev=0..}] run function xpeco:bottle/thrown/take_back
-    # Orbs from other bottles of ours carry xpeco.filled_bauble and stay
-    kill @e[type=minecraft:experience_orb,tag=!xpeco.filled_bauble,distance=..3]
+    # Orbs from other bottles of ours carry xpeco.orb and stay
+    kill @e[type=minecraft:experience_orb,tag=!xpeco.orb,distance=..3]
     function xpeco:bottle/normal/normal
     scoreboard players set #left xpeco.tmp <%config.bottlePoints%>
-    function xpeco:bottle/orbs/orb_next
+    function xpeco:orbs/split
     kill @s
 }
 
