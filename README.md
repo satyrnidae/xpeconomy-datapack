@@ -3,6 +3,10 @@
 Plugin-free XP currency for Minecraft 26.3, built with mc-build. Balance is live XP, so there is no separate ledger.
 Design notes and feasibility are in [datapack-feasibility.md](datapack-feasibility.md).
 
+## AI use disclosure
+
+This pack was written with Claude Code, Anthropic's coding assistant, as a conversion of the xpeconomy Paper plugin. The assistant drafted the sources, the checks, this README and the commit messages. Every file was reviewed by the author before it was committed, and commits made with the assistant carry a Co-Authored-By trailer. The static checks under Build and check pass, but in-game behavior was tested by the author by hand, not by an automated suite.
+
 ## Commands
 
 Players use `/trigger`, since datapack functions need permission level 2. The two chat button triggers carry the xpeco.
