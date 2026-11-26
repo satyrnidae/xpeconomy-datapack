@@ -18,7 +18,7 @@ function load minecraft:load {
     # Display mode: 0 points, 1 levels, 2 per hundred. Only set when unset so /reload keeps it.
     execute unless score #mode xpeco.cfg = #mode xpeco.cfg run scoreboard players set #mode xpeco.cfg 0
 
-    # Request lifetime in ticks from config.json, 600 is 30 seconds. Only set when unset so /reload keeps an edited value.
+    # Request lifetime in ticks from mcb.config.js, 600 is 30 seconds. Only set when unset so /reload keeps an edited value.
     execute unless score #expire xpeco.cfg = #expire xpeco.cfg run scoreboard players set #expire xpeco.cfg <%config.expireTicks%>
 }
 

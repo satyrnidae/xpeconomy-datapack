@@ -6,7 +6,7 @@ import ../config.js
 # since the respawn would otherwise hand the experience back.
 # The rest showers out over deathShowerTicks ticks from a marker left at the death spot, so a quick respawn does not cut it
 # short. The orbs are the ones the bottles use, see orbs.
-# Toggle: /scoreboard players set #deathdrop xpeco.cfg <0|1>. The first load takes the value from dropAllOnDeath in config.json.
+# Toggle: /scoreboard players set #deathdrop xpeco.cfg <0|1>. The first load takes the value from dropAllOnDeath in mcb.config.js.
 function load minecraft:load {
     scoreboard objectives add xpeco.deaths deathCount
     scoreboard objectives add xpeco.shower dummy
