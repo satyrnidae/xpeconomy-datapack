@@ -1,5 +1,6 @@
 import text/core.js
 import ./config.js
+import text/advancement.js
 
 function load minecraft:load {
     # Trigger objectives from before the rename. Removing one that does not exist just fails, so this is safe every load.
@@ -58,4 +59,24 @@ function tick minecraft:tick {
     eq #n2 xpeco.tmp = #g xpeco.tmp % 2
     eq #n20 xpeco.tmp = #g xpeco.tmp % 20
     function #xpeco:tick
+}
+
+advancement root {
+  "display": {
+    "frame": "challenge",
+    "icon": {
+      "id": "minecraft:experience_bottle"
+    },
+    "title": <%advText.rootTitle%>,
+    "description": <%advText.rootDescription%>,
+    "announce_to_chat": false,
+    "show_toast": false,
+    "hidden": false
+  },
+  "parent": "global:satyrnidae/author",
+  "criteria": {
+    "adv_criteria": {
+      "trigger": "minecraft:tick"
+    }
+  }
 }
