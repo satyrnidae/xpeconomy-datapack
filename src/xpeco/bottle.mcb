@@ -4,7 +4,8 @@ import ../config.js
 # XP bottles. Options from mcb.config.js: bottlePoints, bottleReachSteps.
 #
 # The files under bottle/: table for the interaction entity over an enchanting table, item for what a filled bottle is,
-# thrown for tracking a thrown one, normal for its impact normal. The replacement orbs come from orbs. Fill and give stay here. Creative players
+# mode for swapping throw and drink by sneak state, use for consuming it, thrown for tracking a thrown one, normal for its
+# impact normal. The replacement orbs come from orbs. Fill and give stay here. Creative players
 # fill for free, nothing is deducted and no bottle is used.
 
 function fill {

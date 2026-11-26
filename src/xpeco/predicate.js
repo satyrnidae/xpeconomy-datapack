@@ -14,4 +14,22 @@ const nonzero = (objectives) =>
     terms: objectives.flatMap((o) => [score(o, { min: 1 }), score(o, { max: -1 })]),
   }).slice(1, -1);
 
-module.exports = { nonzero };
+// A player with a filled bottle in either hand. Same brace rule as nonzero.
+const holdingBottle = () =>
+  JSON.stringify({
+    type: 'minecraft:any_of',
+    terms: ['mainhand', 'offhand'].map((hand) => ({
+      type: 'minecraft:entity_properties',
+      entity: 'this',
+      predicate: {
+        'minecraft:equipment': {
+          [hand]: {
+            items: 'minecraft:poisonous_potato',
+            predicates: { 'minecraft:custom_data': '{"xpeco:bottle":1b}' },
+          },
+        },
+      },
+    })),
+  }).slice(1, -1);
+
+module.exports = { nonzero, holdingBottle };

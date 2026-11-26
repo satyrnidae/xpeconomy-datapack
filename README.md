@@ -26,7 +26,7 @@ prefix so they stay out of the way of players typing commands, they are meant to
 | `/trigger xpeco.pay_deny` | Cancels the pending payment, run by the chat button |
 
 Bottles: sneak with a glass bottle in the main hand and right-click an enchanting table within 3 blocks. Costs
-`bottlePoints` XP and a glass bottle, creative is free. A thrown filled bottle returns exactly `bottlePoints`.
+`bottlePoints` XP and a glass bottle, creative is free. The filled bottle is a custom item with two modes, shown on the action bar. Standing, it is thrown and returns exactly `bottlePoints` as orbs where it lands. Sneaking, it is consumed and adds `bottlePoints` to you.
 
 ## Ops
 

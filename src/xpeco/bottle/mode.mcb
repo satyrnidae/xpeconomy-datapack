@@ -1,0 +1,57 @@
+import ../../text/bottle.js
+
+# Mode of a filled bottle follows the sneak state: sneaking is drink mode, standing is throw mode. For players holding one
+# the swap runs every tick, and the modifier is applied only when a stack is in the wrong mode. That happens on a change
+# of the sneak state, and on a change of the selected item: no trigger fires when another hotbar slot is selected, so
+# the check of the held stacks stands in for one, and a stack picked up in the other mode or selected after the sneak
+# state changed is corrected the tick it is held. xpeco.bottle_mode remembers the mode last shown, 1 throw and 2 drink,
+# so the action bar message is sent on a change of mode only. It is reset once the bottle leaves the hands, so holding
+# one again shows the message again.
+
+function load minecraft:load {
+    scoreboard objectives add xpeco.bottle_mode dummy
+}
+
+function uninstall xpeco:uninstall {
+    scoreboard objectives remove xpeco.bottle_mode
+}
+
+# Sneaking
+predicate sneaking {
+    "type": "minecraft:entity_properties",
+    "entity": "this",
+    "predicate": {
+        "minecraft:flags": {
+            "is_sneaking": true
+        }
+    }
+}
+
+function swap {
+    # As a player holding a filled bottle
+    execute if predicate xpeco:bottle/mode/sneaking run return run function xpeco:bottle/mode/to_drink
+    function xpeco:bottle/mode/to_throw
+}
+
+function to_drink {
+    execute if items entity @s weapon.mainhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"throw"}] run item modify entity @s weapon.mainhand xpeco:bottle/item/mode/drink
+    execute if items entity @s weapon.offhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"throw"}] run item modify entity @s weapon.offhand xpeco:bottle/item/mode/drink
+    execute unless score @s xpeco.bottle_mode matches 2 run {
+        scoreboard players set @s xpeco.bottle_mode 2
+        title @s actionbar <%bottleText.modeDrink%>
+    }
+}
+
+function to_throw {
+    execute if items entity @s weapon.mainhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"drink"}] run item modify entity @s weapon.mainhand xpeco:bottle/item/mode/throw
+    execute if items entity @s weapon.offhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"drink"}] run item modify entity @s weapon.offhand xpeco:bottle/item/mode/throw
+    execute unless score @s xpeco.bottle_mode matches 1 run {
+        scoreboard players set @s xpeco.bottle_mode 1
+        title @s actionbar <%bottleText.modeThrow%>
+    }
+}
+
+function tick xpeco:tick {
+    execute as @a[predicate=xpeco:bottle/item/holding] run function xpeco:bottle/mode/swap
+    execute as @a[scores={xpeco.bottle_mode=1..},predicate=!xpeco:bottle/item/holding] run scoreboard players reset @s xpeco.bottle_mode
+}

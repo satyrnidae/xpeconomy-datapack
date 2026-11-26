@@ -1,0 +1,15 @@
+# Scoreboard layout migrations. #scoreboardVersion xpeco.cfg holds the layout version this world last ran. An unset score is
+# a world from before the tracker, read as 0. Deprecating or changing an objective adds a step vN here, guarded by
+# matches ..N-1, and bumps the final set in run. Removing an objective that is gone only fails, so a rerun is safe.
+# A step that changes the criterion of an objective has to remove it before the owning feature's load adds it again.
+
+function run {
+    execute unless score #scoreboardVersion xpeco.cfg = #scoreboardVersion xpeco.cfg run scoreboard players set #scoreboardVersion xpeco.cfg 0
+    execute if score #scoreboardVersion xpeco.cfg matches ..0 run function xpeco:migrate/v1
+    scoreboard players set #scoreboardVersion xpeco.cfg 1
+}
+
+# Thrown bottles no longer snapshot player totals
+function v1 {
+    scoreboard objectives remove xpeco.bottle_prev
+}

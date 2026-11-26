@@ -13,7 +13,7 @@ function load minecraft:load {
     # Shared objectives. Each feature file defines its own beside its functions.
     scoreboard objectives add xpeco.tmp dummy
     scoreboard objectives add xpeco.cfg dummy
-
+    function xpeco:migrate/run
 
     # Display mode: 0 points, 1 levels, 2 per hundred. Only set when unset so /reload keeps it.
     execute unless score #mode xpeco.cfg = #mode xpeco.cfg run scoreboard players set #mode xpeco.cfg 0

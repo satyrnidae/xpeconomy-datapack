@@ -1,0 +1,75 @@
+import ../../config.js
+
+# Using a filled bottle. Consuming it fires consume_item, one advancement per mode, told apart by the mode in custom_data
+# of the stack that was consumed. Drink adds bottlePoints. Throw launches a snowball dressed as an experience bottle, with
+# a tracker marker riding it from the start; thrown handles the landing. The rewards run as the player.
+
+function uninstall xpeco:uninstall {
+    advancement revoke @a only xpeco:bottle/use/on_drink
+    advancement revoke @a only xpeco:bottle/use/on_throw
+    kill @e[type=minecraft:snowball,tag=xpeco.bottle.snowball]
+}
+
+REPEAT (['drink', 'throw']) as mode {
+    advancement on_<%mode%> {
+        "criteria": {
+            "use": {
+                "trigger": "minecraft:consume_item",
+                "conditions": {
+                    "item": {
+                        "items": "minecraft:poisonous_potato",
+                        "predicates": {
+                            "minecraft:custom_data": "{\"xpeco:bottle\":1b,mode:\"<%mode%>\"}"
+                        }
+                    }
+                }
+            }
+        },
+        "requirements": [
+            [
+                "use"
+            ]
+        ],
+        "rewards": {
+            "function": "xpeco:bottle/use/<%mode%>"
+        }
+    }
+}
+
+function drink {
+    advancement revoke @s only xpeco:bottle/use/on_drink
+    experience add @s <%config.bottlePoints%> points
+}
+
+function throw {
+    advancement revoke @s only xpeco:bottle/use/on_throw
+    execute anchored eyes positioned ^ ^ ^ run function xpeco:bottle/use/launch
+}
+
+function launch {
+    # At the eyes of the thrower. The snowball starts there, and a marker ahead along the look direction gives the motion:
+    # the difference of the two positions, in thousandths, is the velocity.
+    summon minecraft:snowball ~ ~ ~ {Item:{id:"minecraft:experience_bottle",count:1},Tags:["xpeco.bottle.snowball","xpeco.bottle.new"]}
+    summon minecraft:marker ^ ^ ^<%config.bottleThrowSpeed%> {Tags:["xpeco.bottle.aim"]}
+    data modify entity @n[type=minecraft:snowball,tag=xpeco.bottle.new] Owner set from entity @s UUID
+    REPEAT ({x: 0, y: 1, z: 2}) as a, i {
+        execute store result score #a<%a%> xpeco.tmp run data get entity @n[type=minecraft:marker,tag=xpeco.bottle.aim] Pos[<%i%>] 1000
+        execute store result score #o<%a%> xpeco.tmp run data get entity @n[type=minecraft:snowball,tag=xpeco.bottle.new] Pos[<%i%>] 1000
+        eq #a<%a%> xpeco.tmp -= #o<%a%> xpeco.tmp
+        execute store result storage xpeco:tmp m<%a%> double 0.001 run scoreboard players get #a<%a%> xpeco.tmp
+    }
+    kill @n[type=minecraft:marker,tag=xpeco.bottle.aim]
+    function xpeco:bottle/use/set_motion with storage xpeco:tmp
+    execute summon minecraft:marker run function xpeco:bottle/use/mount
+    tag @n[type=minecraft:snowball,tag=xpeco.bottle.new] remove xpeco.bottle.new
+}
+
+function set_motion {
+    $data merge entity @n[type=minecraft:snowball,tag=xpeco.bottle.new] {Motion:[$(mx),$(my),$(mz)]}
+}
+
+function mount {
+    # As the new marker, at the snowball
+    tag @s add xpeco.bottle_tracker
+    ride @s mount @n[type=minecraft:snowball,tag=xpeco.bottle.new]
+}
