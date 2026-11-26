@@ -1,4 +1,5 @@
 import ../../config.js
+import ../../text/advancement.js
 
 # Using a filled bottle. Consuming it fires consume_item, one advancement per mode, told apart by the mode in custom_data
 # of the stack that was consumed. Drink adds bottlePoints. Throw launches a snowball dressed as an experience bottle, with
@@ -11,6 +12,37 @@ function uninstall xpeco:uninstall {
 }
 
 REPEAT (['drink', 'throw']) as mode {
+    advancement first_<%mode%> {
+        "display": {
+            "title": <%advText["bottle" + mode + "Title"]%>,
+            "description": <%advText["bottle" + mode + "Description"]%>,
+            "icon": {
+                "id": "<%mode === 'drink' ? "minecraft:glass_bottle" : "minecraft:experience_bottle"%>"
+            },
+            "show_toast": true,
+            "announce_to_chat": true
+        },
+        "criteria": {
+            "use": {
+                "trigger": "minecraft:consume_item",
+                "conditions": {
+                    "item": {
+                        "items": "minecraft:poisonous_potato",
+                        "predicates": {
+                            "minecraft:custom_data": "{\"xpeco:bottle\":1b,mode:\"<%mode%>\"}"
+                        }
+                    }
+                }
+            }
+        },
+        "requirements": [
+            [
+                "use"
+            ]
+        ],
+        "parent": "xpeco:root"
+    }
+
     advancement on_<%mode%> {
         "criteria": {
             "use": {
@@ -32,7 +64,8 @@ REPEAT (['drink', 'throw']) as mode {
         ],
         "rewards": {
             "function": "xpeco:bottle/use/<%mode%>"
-        }
+        },
+        "parent": "xpeco:root"
     }
 }
 
@@ -43,12 +76,21 @@ function drink {
     function xpeco:bottle/use/drink_add with storage xpeco:tmp
 }
 
+function late_drink {
+    function xpeco:bottle/use/drink
+    give @s minecraft:glass_bottle 1
+    playsound minecraft:entity.generic.drink player @s ~ ~ ~ 1 1
+}
+
 function drink_add {
     $experience add @s $(points) points
 }
 
 function throw {
     advancement revoke @s only xpeco:bottle/use/on_throw
+    # Sneak and use can arrive in one tick, before mode/swap runs, so the stack was still in throw mode. The player is
+    # sneaking, so it is a drink: pay out, and hand back the bottle that the drink mode remainder would have.
+    execute if predicate xpeco:bottle/mode/sneaking run return run function xpeco:bottle/use/late_drink
     execute anchored eyes positioned ^ ^ ^ run function xpeco:bottle/use/launch
 }
 

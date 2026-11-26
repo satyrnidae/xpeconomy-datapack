@@ -1,4 +1,5 @@
 import ../predicate.js
+import ../../text/bottle.js
 
 # What a filled bottle is: the loot table fill hands out, the two mode modifiers and the predicate for holding one. It is a
 # poisonous potato dressed as an experience bottle. Standing it throws, sneaking it is consumed, see mode and use.
@@ -20,7 +21,7 @@ loot_table filled {
     "modifier": "xpeco:bottle/item/mode/throw"
 }
 
-# Throw mode: consumed the instant it is used, no animation, no burp. The burp comes from the food component alone, so it
+# Throw mode: consumed one tick after it is used, no animation, no burp. The burp comes from the food component alone, so it
 # is removed here. custom_data goes through SNBT so the flag stays a byte.
 item_modifier mode/throw {
     "type": "minecraft:sequence",
@@ -35,15 +36,21 @@ item_modifier mode/throw {
                     "fallback": "Filled Bottle o' Enchanting"
                 },
                 "minecraft:rarity": "common",
+                "minecraft:lore": <%bottleText.lore%>,
                 "!minecraft:food": {},
                 "!minecraft:use_remainder": {},
                 "minecraft:consumable": {
-                    "consume_seconds": 0.0,
+                    "consume_seconds": 0.05,
                     "animation": "none",
                     "sound": "minecraft:entity.experience_bottle.throw",
                     "has_consume_particles": false
                 }
             }
+        },
+        {
+            "type": "minecraft:set_lore",
+            "lore": <%bottleText.modeThrowLore%>,
+            "mode": "append"
         },
         {
             "type": "minecraft:set_custom_data",
@@ -67,6 +74,7 @@ item_modifier mode/drink {
                     "fallback": "Filled Bottle o' Enchanting"
                 },
                 "minecraft:rarity": "common",
+                "minecraft:lore": <%bottleText.lore%>,
                 "minecraft:use_remainder": {
                     "id": "minecraft:glass_bottle"
                 },
@@ -81,6 +89,11 @@ item_modifier mode/drink {
                     "has_consume_particles": false
                 }
             }
+        },
+        {
+            "type": "minecraft:set_lore",
+            "lore": <%bottleText.modeDrinkLore%>,
+            "mode": "append"
         },
         {
             "type": "minecraft:set_custom_data",

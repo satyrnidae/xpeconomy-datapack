@@ -28,8 +28,15 @@ function fill {
     execute if score @s xpeco.total < #bottle xpeco.tmp run return run tellraw @s <%bottleText.lowBalance%>
     execute store result storage xpeco:tmp points int 1 run scoreboard players get #bottlepoints xpeco.cfg
     function xpeco:bottle/take with storage xpeco:tmp
-    clear @s minecraft:glass_bottle 1
+    # clear would take from the first stack in the inventory, not the one in hand
+    item modify entity @s weapon.mainhand xpeco:bottle/use_one
     function xpeco:bottle/give
+}
+
+item_modifier use_one {
+    "type": "minecraft:set_count",
+    "count": -1,
+    "add": true
 }
 
 function take {
