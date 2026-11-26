@@ -21,6 +21,7 @@ Some triggers are meant for internal use and will carry the `xpeco` prefix. Thos
 | `/trigger balance` | Prints your current account balance. |
 | `/trigger pay set <amt>` | Initiates a transaction with another player. If you are looking directly at a player, you will by default initiate the transaction with them. If you are not looking at a player, or you click the `[Someone else...]` confirm dialog button, you can select any player with an account from a paginated list. |
 | `/trigger request set <amt>` | Initiates a payment request to another player. Similarly to the `pay` trigger, this works off of either the player you are looking at, or a selection of players from a list. Requests only work with currently-online players for now. Payment requests expire after thirty seconds with no response. |
+| `/trigger fillAmount set <amt>` | Sets the amount of XP you want to use to [fill a single bottle at the enchantment table](#xp-bottle-filling). In addition to direct amounts, setting it to -1 fills one level's worth of points and -2 fills all of your XP. Setting it to 0 or any other negative value uses the server default. |
 
 ### Operators
 
@@ -48,7 +49,7 @@ Note that the config entry name must be prepended with a pound sign/hashtag `#`.
 | `mode` | `0`, `1`, or `2` | `0` (points) | Display mode for account values. `0` is for points, `1` is for levels, and `2` is for hundred-points (1.00 is 100 points). Defaults to 0 when set to an invalid value. |
 | `expire` | 0, or a number greater than or equal to 20 | 600 ticks (30 seconds) | The number of ticks before a payment / payment request expires. Resets to 20 when out of band. When set to 0, payments / payment requests never expire. |
 | `deathdrop` | `0` or `1` | `0` (disabled) | Enables or disables the [Drop all XP on death](#drop-all-xp-on-death) mechanic. `0` to disable, `1` to enable. Defaults to `0` when set to an invalid value. |
-| `bottlepoints` | Nonzero, positive whole number | 7 (the amount of XP to reach level 1) | Configures the [XP bottle filling](#xp-bottle-filling) mechanic's per-fill cost and XP returned on bottle use. Clamps to 1 when out of band. |
+| `bottlepoints` | Nonzero, positive whole number | 7 (the amount of XP to reach level 1) | Configures the [XP bottle filling](#xp-bottle-filling) mechanic's per-fill cost. Bottles already filled keep the amount they were filled with. `-1` fills one level's worth of points and `-2` all of the XP of whoever fills, see `fillAmount` below. Clamps to 1 when out of band. |
 
 ## Additional features
 
@@ -58,6 +59,8 @@ Empty bottles can be filled at an enchantment table with experience points by ho
 
 The amount of XP can be configured by an operator to any value you like. See [Scoreboard configuration](#scoreboard-configuration) for additional details.
 
+Players can pick their own amount with `/trigger fillAmount set <amount>`. It applies to every bottle you fill from then on, and 0 or -3 and below go back to the default `bottlepoints`. `-1` fills the amount of points in the level you last finished, and `-2` fills all of your XP.
+
 #### Filled bottle o' enchanting
 
 Works similarly to a Bottle o' Enchanting, but with some key differences:
@@ -65,7 +68,7 @@ Works similarly to a Bottle o' Enchanting, but with some key differences:
 - Can only be thrown while you are not sneaking
 - Can be consumed while sneaking to fill experience points directly
 
-If the [scoreboard configuration](#scoreboard-configuration) changes after you fill a bottle, you will regain the amount of XP as set by the current scoreboard configuration.
+Each bottle remembers the amount of XP it was filled with and shows it in its lore, so changing the [scoreboard configuration](#scoreboard-configuration) after you fill a bottle does not change what it is worth. Bottles filled at different amounts do not stack. Bottles filled before this was stored have no amount, and return the current scoreboard configuration value.
 
 As an aside, if you experience issues with stacking Filled Bottles o' Enchanting, you may have one stuck in "sneak mode". In that case, just equip the item in your hand while not sneaking to reset it.
 
