@@ -15,11 +15,34 @@ function on_uninstall xpeco:on_uninstall {
 function compute {
     # Raw point total into @s xpeco.total, from level and progress points
     execute store result score @s xpeco.lvl run experience query @s levels
-    execute store result score @s xpeco.pts run experience query @s points
+    function xpeco:total/points
     execute if score @s xpeco.lvl matches ..16 run function xpeco:total/low
     execute if score @s xpeco.lvl matches 17..31 run function xpeco:total/mid
     execute if score @s xpeco.lvl matches 32.. run function xpeco:total/high
     scoreboard players operation @s xpeco.total += @s xpeco.pts
+}
+
+function points {
+    # Progress points into @s xpeco.pts, rounded to the nearest whole point. experience query points floors a float, and
+    # every orb picked up adds a little float error, so a true 37 can read 36 and each death or pickup would lose a point for
+    # good. XpP is read in ten thousandths, which is exact enough to round from below a level cost of a few thousand.
+    execute store result score #xpp xpeco.tmp run data get entity @s XpP 10000
+    execute if score @s xpeco.lvl matches ..15 run return run function xpeco:total/points_low
+    execute if score @s xpeco.lvl matches 16..30 run return run function xpeco:total/points_mid
+    function xpeco:total/points_high
+}
+
+# Points a level costs to finish: 2L + 7 up to 15, 5L - 38 for 16 to 30, 9L - 158 from 31
+function points_low {
+    eq @s xpeco.pts = (#xpp xpeco.tmp * (@s xpeco.lvl * 2 + 7) + 5000) / 10000
+}
+
+function points_mid {
+    eq @s xpeco.pts = (#xpp xpeco.tmp * (@s xpeco.lvl * 5 - 38) + 5000) / 10000
+}
+
+function points_high {
+    eq @s xpeco.pts = (#xpp xpeco.tmp * (@s xpeco.lvl * 9 - 158) + 5000) / 10000
 }
 
 function high {

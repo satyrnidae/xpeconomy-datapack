@@ -16,6 +16,10 @@ function run {
     execute if score @s pay matches ..-1 run return run scoreboard players set @s pay 0
     scoreboard players operation #amt xpeco.tmp = @s pay
     scoreboard players set @s pay 0
+    # Denied up front when the payer cannot cover it, before a target or a confirm prompt. The transfer checks again, since
+    # the balance can change while the prompt is open.
+    function xpeco:total/compute
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s <%payText.insufficient%>
     # The amount waits for a confirmation. A player in the crosshair is the target; otherwise a list of accounts is offered.
     scoreboard players operation @s xpeco.pay.amt = #amt xpeco.tmp
     execute store result score @s xpeco.pay.at run time query gametime
