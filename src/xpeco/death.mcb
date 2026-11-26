@@ -1,0 +1,73 @@
+import ../config.js
+
+# Optional: drop all experience on death. Vanilla drops 7 points a level up to 100, and none with keepInventory. A dead
+# player stays selectable and keeps their experience until respawn, so the full total is still readable here. Vanilla has
+# already dropped its share by the time this runs, so only the rest is added. With keepInventory the player is also zeroed,
+# since the respawn would otherwise hand the experience back.
+# The rest showers out over deathShowerTicks ticks from a marker left at the death spot, so a quick respawn does not cut it
+# short. The orbs are the ones the bottles use, see bottle/orbs.
+# Toggle: /scoreboard players set #deathdrop xpeco.cfg <0|1>. The first load takes the value from dropAllOnDeath in config.json.
+function load minecraft:load {
+    scoreboard objectives add xpeco.deaths deathCount
+    scoreboard objectives add xpeco.shower dummy
+    scoreboard objectives add xpeco.shower_t dummy
+    execute unless score #deathdrop xpeco.cfg = #deathdrop xpeco.cfg run scoreboard players set #deathdrop xpeco.cfg <%config.dropAllOnDeath ? 1 : 0%>
+}
+
+function on_uninstall xpeco:on_uninstall {
+    scoreboard objectives remove xpeco.deaths
+    scoreboard objectives remove xpeco.shower
+    scoreboard objectives remove xpeco.shower_t
+    kill @e[type=minecraft:marker,tag=xpeco.shower]
+}
+
+function handle {
+    # As and at a player whose death count went up. The score is cleared first, so a death while the option is off is not
+    # picked up later by switching it on.
+    scoreboard players set @s xpeco.deaths 0
+    execute unless score #deathdrop xpeco.cfg matches 1 run return 0
+    execute if entity @s[gamemode=spectator] run return 0
+    function xpeco:total/compute
+    # What vanilla dropped: 7 a level, 100 at most, nothing with keepInventory
+    eq #van xpeco.tmp = @s xpeco.lvl * 7
+    execute if score #van xpeco.tmp matches 101.. run scoreboard players set #van xpeco.tmp 100
+    execute store result score #keep xpeco.tmp run gamerule keep_inventory
+    execute if score #keep xpeco.tmp matches 1 run scoreboard players set #van xpeco.tmp 0
+    eq #drop xpeco.tmp = @s xpeco.total - #van xpeco.tmp
+    # Only keepInventory carries experience over to the respawn, so only then does it have to be cleared. Otherwise vanilla
+    # resets it on respawn anyway.
+    execute if score #keep xpeco.tmp matches 1 run experience set @s 0 levels
+    execute if score #keep xpeco.tmp matches 1 run experience set @s 0 points
+    execute if score #drop xpeco.tmp matches 1.. run function xpeco:death/start_shower
+}
+
+function start_shower {
+    # As and at the dead player. A marker at chest height keeps the remaining points and ticks, so it outlives the respawn.
+    summon minecraft:marker ~ ~1 ~ {Tags:["xpeco.shower","xpeco.shower.new"]}
+    execute as @e[type=minecraft:marker,tag=xpeco.shower.new,distance=..2,limit=1] run function xpeco:death/init_shower
+}
+
+function init_shower {
+    tag @s remove xpeco.shower.new
+    scoreboard players operation @s xpeco.shower = #drop xpeco.tmp
+    scoreboard players set @s xpeco.shower_t <%config.deathShowerTicks%>
+}
+
+function shower_tick {
+    # As and at a shower marker. An even share of what is left each tick, the last tick takes the rest. The bottle orbs are
+    # told the surface faces up, so they all fly upward.
+    scoreboard players operation #left xpeco.tmp = @s xpeco.shower
+    scoreboard players operation #left xpeco.tmp /= @s xpeco.shower_t
+    scoreboard players operation @s xpeco.shower -= #left xpeco.tmp
+    scoreboard players remove @s xpeco.shower_t 1
+    scoreboard players set #nx xpeco.tmp 0
+    scoreboard players set #ny xpeco.tmp 1
+    scoreboard players set #nz xpeco.tmp 0
+    execute if score #left xpeco.tmp matches 1.. run function xpeco:bottle/orbs/orb_next
+    execute if score @s xpeco.shower_t matches ..0 run kill @s
+}
+
+function tick xpeco:tick {
+    execute as @a[scores={xpeco.deaths=1..}] at @s run function xpeco:death/handle
+    execute as @e[type=minecraft:marker,tag=xpeco.shower] at @s run function xpeco:death/shower_tick
+}

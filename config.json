@@ -7,6 +7,8 @@
     "rayStepCount": 20,
     "packName": "xpeconomy-dp",
     "bottlePoints": 7,
-    "bottleReachSteps": 13
+    "bottleReachSteps": 13,
+    "dropAllOnDeath": false,
+    "deathShowerTicks": 20
   }
 }
