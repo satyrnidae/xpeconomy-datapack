@@ -22,6 +22,12 @@ function load minecraft:load {
     execute unless score #expire xpeco.cfg = #expire xpeco.cfg run scoreboard players set #expire xpeco.cfg <%config.expireTicks%>
 }
 
+# A request or payment lifetime of 0 means it never expires. Anything else under 20 ticks, a second, is too short to click
+# anything, so it is raised to 20 wherever it is compared
+function expire_clamp {
+    execute unless score #expire xpeco.cfg matches 0 unless score #expire xpeco.cfg matches 20.. run scoreboard players set #expire xpeco.cfg 20
+}
+
 # Removes everything the pack created, then disables it. Run as an operator: /function xpeco:uninstall
 # Offline pending credits live in xpeco.pending and are discarded with it.
 function uninstall {

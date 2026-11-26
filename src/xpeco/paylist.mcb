@@ -39,6 +39,8 @@ function fresh {
     execute store result score #now xpeco.tmp run time query gametime
     scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
     scoreboard players operation #age xpeco.tmp -= @s xpeco.pay.at
+    function xpeco:expire_clamp
+    execute if score #expire xpeco.cfg matches 0 run return 1
     execute if score #age xpeco.tmp < #expire xpeco.cfg run return 1
     scoreboard players set @s xpeco.pay.amt 0
     tellraw @s <%payText.expired%>

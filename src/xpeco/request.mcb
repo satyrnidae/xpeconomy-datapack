@@ -54,6 +54,8 @@ function fresh_out {
     execute store result score #now xpeco.tmp run time query gametime
     scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
     scoreboard players operation #age xpeco.tmp -= @s xpeco.req.out_at
+    function xpeco:expire_clamp
+    execute if score #expire xpeco.cfg matches 0 run return 1
     execute if score #age xpeco.tmp < #expire xpeco.cfg run return 1
     scoreboard players set @s xpeco.req.out 0
     tellraw @s <%requestText.menuExpired%>
@@ -92,6 +94,8 @@ function check_expiry {
     execute store result score #now xpeco.tmp run time query gametime
     scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
     scoreboard players operation #age xpeco.tmp -= @s xpeco.req.at
+    function xpeco:expire_clamp
+    execute if score #expire xpeco.cfg matches 0 run return 0
     execute if score #age xpeco.tmp < #expire xpeco.cfg run return 0
 
     scoreboard players operation #from xpeco.tmp = @s xpeco.req.from
