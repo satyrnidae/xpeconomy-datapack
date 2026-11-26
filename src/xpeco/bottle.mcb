@@ -1,8 +1,9 @@
 import ../text/bottle.js
 import ../config.js
+import ./levels.js
 
 # XP bottles. Options from mcb.config.js: bottlePoints, bottleReachSteps. bottlePoints is the default of #bottlepoints
-# xpeco.cfg, set on first load only, so /scoreboard players set #bottlepoints xpeco.cfg <n> changes it at runtime, a value under 1 is raised to 1.
+# xpeco.cfg, set on first load only, so /scoreboard players set #bottlepoints xpeco.cfg <n> changes it at runtime, a value under 1 is raised to 1, except -1 for one level's worth and -2 for all XP.
 #
 # The files under bottle/: table for the interaction entity over an enchanting table, item for what a filled bottle is,
 # mode for swapping throw and drink by sneak state, use for consuming it, thrown for tracking a thrown one, normal for its
@@ -14,29 +15,71 @@ function load minecraft:load {
 }
 
 function clamp {
-    # A value under 1 would fill empty bottles or take XP away, so it is raised to 1 wherever the value is used
-    execute if score #bottlepoints xpeco.cfg matches ..0 run scoreboard players set #bottlepoints xpeco.cfg 1
+    # A value of 0 or under the all XP value would fill empty bottles or take XP away, so it is raised to 1 wherever the value is used. the level and all XP values
+    # from mcb.config.js are kept, one level's worth of points and all the XP.
+    execute unless score #bottlepoints xpeco.cfg matches 1.. unless score #bottlepoints xpeco.cfg matches <%config.fillLevel%> unless score #bottlepoints xpeco.cfg matches <%config.fillAll%> run scoreboard players set #bottlepoints xpeco.cfg 1
 }
 
 function fill {
     # Reward of on_interact, as the player who clicked the entity
     advancement revoke @s only xpeco:bottle/table/on_interact
-    execute if entity @s[gamemode=creative] run return run function xpeco:bottle/give
     function xpeco:bottle/clamp
-    scoreboard players operation #bottle xpeco.tmp = #bottlepoints xpeco.cfg
+    # The price is stored in the filled bottle by the loot table, so a later change of #bottlepoints does not change what
+    # an existing bottle is worth
+    # The player's own amount from /trigger fillAmount wins over #bottlepoints
+    function xpeco:bottle/price
+    scoreboard players operation #bottle xpeco.tmp = #price xpeco.tmp
+    execute store result storage xpeco:tmp points int 1 run scoreboard players get #bottle xpeco.tmp
+    execute if entity @s[gamemode=creative] run return run function xpeco:bottle/give
     function xpeco:total/compute
-    execute if score @s xpeco.total < #bottle xpeco.tmp run return run tellraw @s <%bottleText.lowBalance%>
-    execute store result storage xpeco:tmp points int 1 run scoreboard players get #bottlepoints xpeco.cfg
+    execute if score @s xpeco.total < #bottle xpeco.tmp run return run function xpeco:bottle/low
     function xpeco:bottle/take with storage xpeco:tmp
     # clear would take from the first stack in the inventory, not the one in hand
-    item modify entity @s weapon.mainhand xpeco:bottle/use_one
+    item modify entity @s weapon.mainhand xpeco:bottle/item/use_one
     function xpeco:bottle/give
 }
 
-item_modifier use_one {
-    "type": "minecraft:set_count",
-    "count": -1,
-    "add": true
+function low {
+    # As the player. The click on the command suggests their own balance as the amount, through a macro.
+    execute store result storage xpeco:tmp total int 1 run scoreboard players get @s xpeco.total
+    function xpeco:bottle/low_say with storage xpeco:tmp
+}
+
+function low_say {
+    $tellraw @s <%bottleText.lowBalance%>
+}
+
+function price {
+    # As the player. The amount a fill costs into #price: their own from /trigger fillAmount, fillLevel being one level's worth,
+    # fillAll all their XP, else #bottlepoints, which can also be either of those.
+    function xpeco:bottle/clamp
+    scoreboard players operation #price xpeco.tmp = #bottlepoints xpeco.cfg
+    execute unless score @s xpeco.fill matches 0 run scoreboard players operation #price xpeco.tmp = @s xpeco.fill
+    execute if score #price xpeco.tmp matches <%config.fillLevel%> run function xpeco:bottle/price_level
+    execute if score #price xpeco.tmp matches <%config.fillAll%> run function xpeco:bottle/price_all
+}
+
+function price_level {
+    # One level's worth is the cost of the level the player last finished, so filling never drops them more than a level.
+    # Before level 1 there is none, and it is all the XP they have, at least 1 so the low balance message still shows.
+    execute store result score #lv xpeco.tmp run experience query @s levels
+    execute if score #lv xpeco.tmp matches ..0 run return run function xpeco:bottle/price_all
+    scoreboard players remove #lv xpeco.tmp 1
+    REPEAT (levelTiers) as t {
+        execute if score #lv xpeco.tmp matches <%t.range%> run return run function xpeco:bottle/price_<%t.name%>
+    }
+}
+
+function price_all {
+    function xpeco:total/compute
+    scoreboard players operation #price xpeco.tmp = @s xpeco.total
+    execute if score #price xpeco.tmp matches ..0 run scoreboard players set #price xpeco.tmp 1
+}
+
+REPEAT (levelTiers) as t {
+    function price_<%t.name%> {
+        eq #price xpeco.tmp = <%cost(t, '#lv xpeco.tmp')%>
+    }
 }
 
 function take {

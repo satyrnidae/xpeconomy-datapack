@@ -1,4 +1,5 @@
 import ../../text/bottle.js
+import ../predicate.js
 
 # Mode of a filled bottle follows the sneak state: sneaking is drink mode, standing is throw mode. For players holding one
 # the swap runs every tick, and the modifier is applied only when a stack is in the wrong mode. That happens on a change
@@ -10,10 +11,12 @@ import ../../text/bottle.js
 
 function load minecraft:load {
     scoreboard objectives add xpeco.bottle_mode dummy
+    scoreboard objectives add xpeco.bottle_pts dummy
 }
 
 function uninstall xpeco:uninstall {
     scoreboard objectives remove xpeco.bottle_mode
+    scoreboard objectives remove xpeco.bottle_pts
 }
 
 # Sneaking
@@ -33,25 +36,80 @@ function swap {
     function xpeco:bottle/mode/to_throw
 }
 
-function to_drink {
-    execute if items entity @s weapon.mainhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"throw"}] run item modify entity @s weapon.mainhand xpeco:bottle/item/mode/drink
-    execute if items entity @s weapon.offhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"throw"}] run item modify entity @s weapon.offhand xpeco:bottle/item/mode/drink
-    execute unless score @s xpeco.bottle_mode matches 2 run {
-        scoreboard players set @s xpeco.bottle_mode 2
-        title @s actionbar <%bottleText.modeDrink%>
+# A filled bottle in one hand, and in one hand of one mode
+REPEAT (['mainhand', 'offhand']) as hand {
+    predicate held_<%hand%> {
+        <%heldBottle(hand)%>
+    }
+
+    REPEAT (['throw', 'drink']) as mode {
+        predicate held_<%hand%>_<%mode%> {
+            <%heldBottle(hand, mode)%>
+        }
     }
 }
 
-function to_throw {
-    execute if items entity @s weapon.mainhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"drink"}] run item modify entity @s weapon.mainhand xpeco:bottle/item/mode/throw
-    execute if items entity @s weapon.offhand *[minecraft:custom_data~{"xpeco:bottle":1b,mode:"drink"}] run item modify entity @s weapon.offhand xpeco:bottle/item/mode/throw
-    execute unless score @s xpeco.bottle_mode matches 1 run {
-        scoreboard players set @s xpeco.bottle_mode 1
-        title @s actionbar <%bottleText.modeThrow%>
+# to_drink swaps stacks in throw mode, to_throw stacks in drink mode, and either shows the mode once per hold
+REPEAT ([{fn: 'to_drink', from: 'throw', to: 'drink', id: 2, msg: 'modeDrink'}, {fn: 'to_throw', from: 'drink', to: 'throw', id: 1, msg: 'modeThrow'}]) as m {
+    function <%m.fn%> {
+        REPEAT (['mainhand', 'offhand']) as hand {
+            execute if predicate xpeco:bottle/mode/held_<%hand%>_<%m.from%> run item modify entity @s weapon.<%hand%> xpeco:bottle/item/mode/<%m.to%>
+        }
+        execute unless score @s xpeco.bottle_mode matches <%m.id%> run {
+            scoreboard players set @s xpeco.bottle_mode <%m.id%>
+            title @s actionbar <%bottleText[m.msg]%>
+        }
     }
+}
+
+# xpeco.bottle_pts caches the points stored in the bottle that would be used, the main hand one if there is one, else the
+# off hand one. The stack is gone by the time the consume advancement rewards, so the value has to be known before. Reading
+# it costs a player NBT save, so it is only read when the held stack no longer matches the cache, one items check with
+# the cached value as a macro. 0 is a bottle from before the points were stored, which is worth the current price.
+function sync {
+    execute unless score @s xpeco.bottle_pts = @s xpeco.bottle_pts run scoreboard players set @s xpeco.bottle_pts -1
+    execute store result storage xpeco:tmp cached int 1 run scoreboard players get @s xpeco.bottle_pts
+    function xpeco:bottle/mode/verify with storage xpeco:tmp
+}
+
+function verify {
+    $execute if items entity @s weapon.mainhand *[minecraft:custom_data~{"xpeco:bottle":1b,points:$(cached)}] run return 0
+    $execute unless items entity @s weapon.mainhand *[minecraft:custom_data~{"xpeco:bottle":1b}] if items entity @s weapon.offhand *[minecraft:custom_data~{"xpeco:bottle":1b,points:$(cached)}] run return 0
+    execute if predicate xpeco:bottle/mode/held_mainhand run return run function xpeco:bottle/mode/read_main
+    function xpeco:bottle/mode/read_off
+}
+
+# Reads the points of the held bottle, and gives one from before the points were stored the current price and its lore line
+# the first time it is held, so the cache matches it from then on and the mode swap finds the lore where it expects it.
+REPEAT ([{n: 'main', slot: 'weapon.mainhand', path: 'SelectedItem'}, {n: 'off', slot: 'weapon.offhand', path: 'Inventory[{Slot:-106b}]'}]) as h {
+    function read_<%h.n%> {
+        scoreboard players set @s xpeco.bottle_pts 0
+        execute store result score @s xpeco.bottle_pts run data get entity @s <%h.path%>.components."minecraft:custom_data".points
+        execute if score @s xpeco.bottle_pts matches 0 run function xpeco:bottle/mode/migrate_<%h.n%>
+    }
+
+    function migrate_<%h.n%> {
+        function xpeco:bottle/price
+        execute store result storage xpeco:tmp points int 1 run scoreboard players get #price xpeco.tmp
+        item modify entity @s <%h.slot%> xpeco:bottle/item/legacy
+        scoreboard players operation @s xpeco.bottle_pts = #price xpeco.tmp
+    }
+}
+
+function held {
+    # As a player holding a filled bottle. The cache is verified every other tick, and at once when there is none, before
+    # the swap touches the lore.
+    execute if score #n2 xpeco.tmp matches 0 run function xpeco:bottle/mode/sync
+    execute unless score @s xpeco.bottle_pts = @s xpeco.bottle_pts run function xpeco:bottle/mode/sync
+    function xpeco:bottle/mode/swap
 }
 
 function tick xpeco:tick {
-    execute as @a[predicate=xpeco:bottle/item/holding] run function xpeco:bottle/mode/swap
-    execute as @a[scores={xpeco.bottle_mode=1..},predicate=!xpeco:bottle/item/holding] run scoreboard players reset @s xpeco.bottle_mode
+    execute as @a[predicate=xpeco:bottle/item/holding] run function xpeco:bottle/mode/held
+    execute as @a[scores={xpeco.bottle_mode=1..},predicate=!xpeco:bottle/item/holding] run function xpeco:bottle/mode/clear
+}
+
+function clear {
+    scoreboard players reset @s xpeco.bottle_mode
+    scoreboard players reset @s xpeco.bottle_pts
 }

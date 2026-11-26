@@ -1,5 +1,6 @@
 import ../../config.js
 import ../../text/advancement.js
+import ../../text/bottle.js
 
 # Fill: sneak with a glass bottle in the main hand and aim at an enchanting table within reach. While that holds, an
 #  interaction entity sits over the table. It is a bit bigger than the table so the ray reaches it before the block, and
@@ -11,7 +12,17 @@ import ../../text/advancement.js
 #  Side effects while it is there: the table cannot be broken, and other players near it get the entity click instead of
 #  the menu.
 
+# xpeco.hint_t counts the ticks a player has been looking at a table, so the hint always starts on the amount. xpeco.hint_seen
+# is set while they look and cleared after each pass, a pass without it resets the count.
+function load minecraft:load {
+    scoreboard objectives add xpeco.hint_t dummy
+    scoreboard objectives add xpeco.hint_seen dummy
+}
+
 function uninstall xpeco:uninstall {
+    scoreboard objectives remove xpeco.hint_t
+    scoreboard objectives remove xpeco.hint_seen
+    tag @a remove xpeco.table_ready
     kill @e[type=minecraft:interaction,tag=xpeco.bottle.table]
     advancement revoke @a only xpeco:bottle/table/on_interact
 }
@@ -102,13 +113,42 @@ function ray {
 }
 
 function ensure {
+    # As the player, at a point inside the table. The action bar lasts a few seconds, so every other tick is plenty.
+    function xpeco:bottle/table/hint
     # At a point inside the table. Puts one interaction entity over the table's block, unless it already has one.
     execute align xyz positioned ~0.5 ~ ~0.5 unless entity @e[type=minecraft:interaction,tag=xpeco.bottle.table,distance=..0.3] run summon minecraft:interaction ~ ~ ~ {width:1.1f,height:0.85f,response:true,Tags:["xpeco.bottle.table"]}
+}
+
+function hint {
+    # hintSeconds of the amount, then as long of the command hint, counted from when the player started looking. This runs
+    # every other tick, and sends every 40 ticks: at each switch, and a refresh in between since the action bar fades.
+    execute unless score @s xpeco.hint_t = @s xpeco.hint_t run scoreboard players set @s xpeco.hint_t 0
+    scoreboard players set @s xpeco.hint_seen 1
+    eq #phase xpeco.tmp = @s xpeco.hint_t % <%config.hintSeconds * 40%>
+    scoreboard players add @s xpeco.hint_t 2
+    eq #send xpeco.tmp = #phase xpeco.tmp % <%config.hintRefreshTicks%>
+    execute if score #send xpeco.tmp matches 0 run function xpeco:bottle/table/hint_send
+}
+
+function hint_send {
+    function xpeco:bottle/price
+    scoreboard players operation #hint xpeco.tmp = #price xpeco.tmp
+    execute if score #phase xpeco.tmp matches ..<%config.hintSeconds * 20 - 1%> run title @s actionbar <%bottleText.fillHint%>
+    execute if score #phase xpeco.tmp matches <%config.hintSeconds * 20%>.. run title @s actionbar <%bottleText.fillHintCmd%>
+}
+
+function cleanup {
+    # Players who qualify are tagged once, not tested for every table entity
+    tag @a remove xpeco.table_ready
+    tag @a[predicate=xpeco:bottle/table/ready] add xpeco.table_ready
+    execute as @e[type=minecraft:interaction,tag=xpeco.bottle.table] at @s unless entity @a[tag=xpeco.table_ready,distance=..6] run kill @s
 }
 
 function tick xpeco:tick {
     # The entity only has to be there before the click, so the ray runs every other tick. The cleanup runs every tick: a
     # leftover entity would swallow the click of a player who stopped sneaking, and the table would not open.
     execute if score #n2 xpeco.tmp matches 0 as @a[predicate=xpeco:bottle/table/ready] at @s run function xpeco:bottle/table/track
-    execute as @e[type=minecraft:interaction,tag=xpeco.bottle.table] at @s unless entity @a[predicate=xpeco:bottle/table/ready,distance=..6] run kill @s
+    execute if score #n2 xpeco.tmp matches 0 as @a[scores={xpeco.hint_t=0..}] unless score @s xpeco.hint_seen matches 1 run scoreboard players reset @s xpeco.hint_t
+    execute if score #n2 xpeco.tmp matches 0 run scoreboard players reset @a xpeco.hint_seen
+    execute if entity @e[type=minecraft:interaction,tag=xpeco.bottle.table] run function xpeco:bottle/table/cleanup
 }

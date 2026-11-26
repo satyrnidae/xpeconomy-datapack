@@ -1,7 +1,11 @@
+import ../config.js
+
 # Triggers go disabled after a player uses them, so they are enabled again here, once a second. A button clicked twice
 # within the second is refused by the game until the next enable.
 function enable {
-    REPEAT (['balance', 'pay', 'request', 'xpeco.accept_charges', 'xpeco.decline_payment', 'xpeco.pay_to', 'xpeco.pay_page', 'xpeco.pay_confirm', 'xpeco.pay_deny', 'xpeco.req_to', 'xpeco.req_page']) as t {
+    # enable creates a score of 0, which fillAmount would read as a use, so the idle marker goes on first
+    execute as @a unless score @s fillAmount = @s fillAmount run scoreboard players set @s fillAmount <%config.idleMarker%>
+    REPEAT (['balance', 'pay', 'request', 'fillAmount', 'xpeco.accept_charges', 'xpeco.decline_payment', 'xpeco.pay_to', 'xpeco.pay_page', 'xpeco.pay_confirm', 'xpeco.pay_deny', 'xpeco.req_to', 'xpeco.req_page']) as t {
         scoreboard players enable @a <%t%>
     }
 }

@@ -1,11 +1,15 @@
 import ../predicate.js
-import ../../text/bottle.js
+import ./modes.js
 
 # What a filled bottle is: the loot table fill hands out, the two mode modifiers and the predicate for holding one. It is a
-# poisonous potato dressed as an experience bottle. Standing it throws, sneaking it is consumed, see mode and use.
+# poisonous potato dressed as an experience bottle. Standing it throws, sneaking it is consumed, see mode and use. The
+# modifiers are built in modes.js, since the fill and the mode swaps share most of their parts.
+#
+# Lore lines: 1 and 2 the keys, 3 the points it was filled with, 4 the mode. The swaps replace line 4 only.
 
-# One filled bottle, in throw mode. A loot table applies an item modifier through its root modifier key, not through a
-# functions list; 26.3 has no reference function, and a bare id in functions did nothing.
+# One filled bottle, in throw mode, with the price stored in custom_data and in the lore. A loot table applies an item
+# modifier through its root modifier key, not through a functions list; 26.3 has no reference function, and a bare id
+# in functions did nothing.
 loot_table filled {
     "pools": [
         {
@@ -18,88 +22,22 @@ loot_table filled {
             ]
         }
     ],
-    "modifier": "xpeco:bottle/item/mode/throw"
+    "modifier": "xpeco:bottle/item/fill"
 }
 
-# Throw mode: consumed one tick after it is used, no animation, no burp. The burp comes from the food component alone, so it
-# is removed here. custom_data goes through SNBT so the flag stays a byte.
-item_modifier mode/throw {
-    "type": "minecraft:sequence",
-    "functions": [
-        {
-            "type": "minecraft:set_components",
-            "components": {
-                "minecraft:item_model": "minecraft:experience_bottle",
-                "minecraft:enchantment_glint_override": true,
-                "minecraft:item_name": {
-                    "translate": "xpeco.bottle.name",
-                    "fallback": "Filled Bottle o' Enchanting"
-                },
-                "minecraft:rarity": "common",
-                "minecraft:lore": <%bottleText.lore%>,
-                "!minecraft:food": {},
-                "!minecraft:use_remainder": {},
-                "minecraft:consumable": {
-                    "consume_seconds": 0.05,
-                    "animation": "none",
-                    "sound": "minecraft:entity.experience_bottle.throw",
-                    "has_consume_particles": false
-                }
-            }
-        },
-        {
-            "type": "minecraft:set_lore",
-            "lore": <%bottleText.modeThrowLore%>,
-            "mode": "append"
-        },
-        {
-            "type": "minecraft:set_custom_data",
-            "tag": "{\"xpeco:bottle\":1b,mode:\"throw\"}"
-        }
-    ]
+# Each is a sequence of the functions modes.js builds under the key
+REPEAT ([{path: 'fill', key: 'fill'}, {path: 'legacy', key: 'legacy'}, {path: 'mode/throw', key: 'throw'}, {path: 'mode/drink', key: 'drink'}]) as m {
+    item_modifier <%m.path%> {
+        "type": "minecraft:sequence",
+        "functions": <%modes[m.key]%>
+    }
 }
 
-# Drink mode: the default 1.6 second drink, without particles. consume_seconds is left out because it is the default, and
-# Scan flags a field written at its default. Kept as food so it can always be consumed and burps afterwards.
-item_modifier mode/drink {
-    "type": "minecraft:sequence",
-    "functions": [
-        {
-            "type": "minecraft:set_components",
-            "components": {
-                "minecraft:item_model": "minecraft:experience_bottle",
-                "minecraft:enchantment_glint_override": true,
-                "minecraft:item_name": {
-                    "translate": "xpeco.bottle.name",
-                    "fallback": "Filled Bottle o' Enchanting"
-                },
-                "minecraft:rarity": "common",
-                "minecraft:lore": <%bottleText.lore%>,
-                "minecraft:use_remainder": {
-                    "id": "minecraft:glass_bottle"
-                },
-                "minecraft:food": {
-                    "nutrition": 0,
-                    "saturation": 0.0,
-                    "can_always_eat": true
-                },
-                "minecraft:consumable": {
-                    "animation": "drink",
-                    "sound": "minecraft:entity.generic.drink",
-                    "has_consume_particles": false
-                }
-            }
-        },
-        {
-            "type": "minecraft:set_lore",
-            "lore": <%bottleText.modeDrinkLore%>,
-            "mode": "append"
-        },
-        {
-            "type": "minecraft:set_custom_data",
-            "tag": "{\"xpeco:bottle\":1b,mode:\"drink\"}"
-        }
-    ]
+# Takes one bottle out of the stack in hand. clear would take from the first stack in the inventory instead.
+item_modifier use_one {
+    "type": "minecraft:set_count",
+    "count": -1,
+    "add": true
 }
 
 # A player with a filled bottle in either hand

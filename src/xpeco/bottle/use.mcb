@@ -71,9 +71,18 @@ REPEAT (['drink', 'throw']) as mode {
 
 function drink {
     advancement revoke @s only xpeco:bottle/use/on_drink
-    function xpeco:bottle/clamp
-    execute store result storage xpeco:tmp points int 1 run scoreboard players get #bottlepoints xpeco.cfg
+    function xpeco:bottle/use/resolve
+    execute store result storage xpeco:tmp points int 1 run scoreboard players get #pts xpeco.tmp
     function xpeco:bottle/use/drink_add with storage xpeco:tmp
+}
+
+function resolve {
+    # As the player. #pts is what the bottle just used was filled with, from the cache in mode. A bottle from before the
+    # points were stored has none, and is worth the current price.
+    function xpeco:bottle/clamp
+    scoreboard players set #pts xpeco.tmp 0
+    scoreboard players operation #pts xpeco.tmp = @s xpeco.bottle_pts
+    execute unless score #pts xpeco.tmp matches 1.. run scoreboard players operation #pts xpeco.tmp = #bottlepoints xpeco.cfg
 }
 
 function late_drink {
@@ -91,6 +100,7 @@ function throw {
     # Sneak and use can arrive in one tick, before mode/swap runs, so the stack was still in throw mode. The player is
     # sneaking, so it is a drink: pay out, and hand back the bottle that the drink mode remainder would have.
     execute if predicate xpeco:bottle/mode/sneaking run return run function xpeco:bottle/use/late_drink
+    function xpeco:bottle/use/resolve
     execute anchored eyes positioned ^ ^ ^ run function xpeco:bottle/use/launch
 }
 
@@ -119,5 +129,6 @@ function set_motion {
 function mount {
     # As the new marker, at the snowball
     tag @s add xpeco.bottle_tracker
+    scoreboard players operation @s xpeco.bottle_pts = #pts xpeco.tmp
     ride @s mount @n[type=minecraft:snowball,tag=xpeco.bottle.new]
 }

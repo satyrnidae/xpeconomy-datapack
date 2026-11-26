@@ -14,22 +14,32 @@ const nonzero = (objectives) =>
     terms: objectives.flatMap((o) => [score(o, { min: 1 }), score(o, { max: -1 })]),
   }).slice(1, -1);
 
-// A player with a filled bottle in either hand. Same brace rule as nonzero.
+// A filled bottle in one hand, optionally of one mode, as a predicate term.
+const heldTerm = (hand, mode) => ({
+  type: 'minecraft:entity_properties',
+  entity: 'this',
+  predicate: {
+    'minecraft:equipment': {
+      [hand]: {
+        items: 'minecraft:poisonous_potato',
+        predicates: { 'minecraft:custom_data': `{"xpeco:bottle":1b${mode ? `,mode:"${mode}"` : ''}}` },
+      },
+    },
+  },
+});
+
+// One hand, bare. Same brace rule as nonzero.
+const heldBottle = (hand, mode) => JSON.stringify(heldTerm(hand, mode)).slice(1, -1);
+
+// A player with a filled bottle in either hand
 const holdingBottle = () =>
+  JSON.stringify({ type: 'minecraft:any_of', terms: ['mainhand', 'offhand'].map((hand) => heldTerm(hand)) }).slice(1, -1);
+
+// The score is any of the given values, each a number or a {min, max} range
+const scoreAny = (objective, values) =>
   JSON.stringify({
     type: 'minecraft:any_of',
-    terms: ['mainhand', 'offhand'].map((hand) => ({
-      type: 'minecraft:entity_properties',
-      entity: 'this',
-      predicate: {
-        'minecraft:equipment': {
-          [hand]: {
-            items: 'minecraft:poisonous_potato',
-            predicates: { 'minecraft:custom_data': '{"xpeco:bottle":1b}' },
-          },
-        },
-      },
-    })),
+    terms: values.map((v) => score(objective, v)),
   }).slice(1, -1);
 
-module.exports = { nonzero, holdingBottle };
+module.exports = { nonzero, holdingBottle, heldBottle, scoreAny };

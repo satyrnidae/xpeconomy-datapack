@@ -1,0 +1,48 @@
+import ../../text/bottle.js
+import ../../config.js
+import ../predicate.js
+
+# /trigger fillAmount set <x> lets a player pick their own fill amount, kept in xpeco.fill. fillLevel in mcb.config.js is one
+# level's worth of points, finishing the level they are on, and fillAll is all their XP. Anything else under 1 clears it. An
+# idle trigger sits at idleMarker, so that a player's set 0 shows up as a change. With none set, fill uses #bottlepoints.
+
+function load minecraft:load {
+    scoreboard objectives add fillAmount trigger
+    scoreboard objectives add xpeco.fill dummy
+    # A score of 0 left by an earlier version would read as a use
+    scoreboard players set @a fillAmount <%config.idleMarker%>
+}
+
+function uninstall xpeco:uninstall {
+    scoreboard objectives remove fillAmount
+    scoreboard objectives remove xpeco.fill
+}
+
+function clear {
+    # As the player who fired the trigger with anything that is not a special value
+    scoreboard players reset @s xpeco.fill
+    scoreboard players set @s fillAmount <%config.idleMarker%>
+    function xpeco:bottle/clamp
+    function xpeco:bottle/price
+    tellraw @s <%bottleText.amountCleared%>
+}
+
+# The values the trigger keeps as the override, anything else clears it
+predicate keep {
+    <%scoreAny('fillAmount', [{ min: 1 }, config.fillLevel, config.fillAll])%>
+}
+
+function used {
+    # As a player whose trigger is not at the marker. Positive values and the two special ones are kept, anything else clears.
+    execute unless predicate xpeco:bottle/amount/keep run return run function xpeco:bottle/amount/clear
+    scoreboard players operation @s xpeco.fill = @s fillAmount
+    scoreboard players set @s fillAmount <%config.idleMarker%>
+    REPEAT ([{r: '1..', m: 'amountSet'}, {r: config.fillLevel, m: 'amountLevel'}, {r: config.fillAll, m: 'amountAll'}]) as v {
+        execute if score @s xpeco.fill matches <%v.r%> run tellraw @s <%bottleText[v.m]%>
+    }
+}
+
+function tick xpeco:tick {
+    # Unset scores get the marker in trigger/enable, so a used trigger is any score above it
+    execute as @a[scores={fillAmount=<%config.idleMarker + 1%>..}] run function xpeco:bottle/amount/used
+}

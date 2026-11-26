@@ -1,4 +1,5 @@
 import ../../config.js
+import ./trace.js
 
 # Tracking of a thrown bottle. The throw reward in use launches a snowball with a marker riding it. While the marker has a
 # vehicle the bottle is in flight; when it has none the snowball has landed, and exactly bottlePoints of orbs, split at
@@ -6,13 +7,13 @@ import ../../config.js
 # tagged xpeco.orb by orbs, which keeps several bottles landing together apart from each other.
 
 function load minecraft:load {
-    REPEAT (['xpeco.trace_px', 'xpeco.trace_py', 'xpeco.trace_pz', 'xpeco.trace_vx', 'xpeco.trace_vy', 'xpeco.trace_vz']) as o {
+    REPEAT (traceObjectives) as o {
         scoreboard objectives add <%o%> dummy
     }
 }
 
 function uninstall xpeco:uninstall {
-    REPEAT (['xpeco.trace_px', 'xpeco.trace_py', 'xpeco.trace_pz', 'xpeco.trace_vx', 'xpeco.trace_vy', 'xpeco.trace_vz']) as o {
+    REPEAT (traceObjectives) as o {
         scoreboard objectives remove <%o%>
     }
     kill @e[type=minecraft:marker,tag=xpeco.bottle_tracker]
@@ -30,8 +31,10 @@ function trace {
     # As the tracker. Position and speed are scores on the marker, in thousandths of a block, so the only entity NBT read per
     # tick is the position. Speed is the change since the last tick, so when the bottle lands it is the speed of its last
     # step.
+    # One entity read into storage, the axes are read from there
+    data modify storage xpeco:tmp pos set from entity @s Pos
     REPEAT ({x: 0, y: 1, z: 2}) as a, i {
-        execute store result score #c<%a%> xpeco.tmp run data get entity @s Pos[<%i%>] 1000
+        execute store result score #c<%a%> xpeco.tmp run data get storage xpeco:tmp pos[<%i%>] 1000
     }
     execute if score @s xpeco.trace_px = @s xpeco.trace_px run function xpeco:bottle/thrown/trace_speed
     REPEAT (['x', 'y', 'z']) as a {
@@ -49,8 +52,10 @@ function landed {
     # As and at a tracker whose snowball is gone
     function xpeco:bottle/thrown/splash
     function xpeco:bottle/normal/normal
-    function xpeco:bottle/clamp
+    # A marker thrown before the points were carried has no score, so it falls back to the default amount, 1 at least
     scoreboard players operation #left xpeco.tmp = #bottlepoints xpeco.cfg
+    execute if score @s xpeco.bottle_pts matches 1.. run scoreboard players operation #left xpeco.tmp = @s xpeco.bottle_pts
+    execute unless score #left xpeco.tmp matches 1.. run scoreboard players set #left xpeco.tmp 1
     function xpeco:orbs/split
     kill @s
 }
