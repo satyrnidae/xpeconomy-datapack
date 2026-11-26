@@ -5,67 +5,38 @@
 # was moving on: a solid block there is the face, and the normal points back against the travel. With nothing solid found
 # it was an entity hit or a graze, so use the reverse of the motion; with no motion either, up.
 function normal {
-    scoreboard players set #nx xpeco.tmp 0
-    scoreboard players set #ny xpeco.tmp 0
-    scoreboard players set #nz xpeco.tmp 0
-    scoreboard players set #vx xpeco.tmp 0
-    scoreboard players set #vy xpeco.tmp 0
-    scoreboard players set #vz xpeco.tmp 0
-    execute store result score #vx xpeco.tmp run data get entity @s data.vx
-    execute store result score #vy xpeco.tmp run data get entity @s data.vy
-    execute store result score #vz xpeco.tmp run data get entity @s data.vz
+    REPEAT (['x', 'y', 'z']) as a {
+        eq #n<%a%> xpeco.tmp = 0
+        eq #v<%a%> xpeco.tmp = 0
+        eq #v<%a%> xpeco.tmp = @s xpeco.trace_v<%a%>
+    }
     # The marker trails the impact by up to a step, so the probe goes 1.1 steps ahead. Speeds under 0.02 are ignored.
-    execute unless score #vx xpeco.tmp matches -19..19 run function xpeco:bottle/normal/probe_x
-    execute unless score #vy xpeco.tmp matches -19..19 run function xpeco:bottle/normal/probe_y
-    execute unless score #vz xpeco.tmp matches -19..19 run function xpeco:bottle/normal/probe_z
+    REPEAT (['x', 'y', 'z']) as a {
+        execute unless score #v<%a%> xpeco.tmp matches -19..19 run function xpeco:bottle/normal/probe_<%a%>
+    }
     execute if score #nx xpeco.tmp matches 0 if score #ny xpeco.tmp matches 0 if score #nz xpeco.tmp matches 0 run function xpeco:bottle/normal/normal_from_motion
 }
 
-function probe_x {
-    execute store result storage xpeco:tmp dx double 0.0011 run scoreboard players get #vx xpeco.tmp
-    function xpeco:bottle/normal/probe_x_at with storage xpeco:tmp
-}
+# Per axis: probe stores the probe distance, probe_at tests the block there and hit sets the normal against the travel.
+REPEAT (['x', 'y', 'z']) as a {
+    function probe_<%a%> {
+        execute store result storage xpeco:tmp d<%a%> double 0.0011 run scoreboard players get #v<%a%> xpeco.tmp
+        function xpeco:bottle/normal/probe_<%a%>_at with storage xpeco:tmp
+    }
 
-function probe_x_at {
-    $execute positioned ~$(dx) ~ ~ unless block ~ ~ ~ #xpeco:target/ray_pass run function xpeco:bottle/normal/hit_x
-}
+    function probe_<%a%>_at {
+        $execute positioned <%a == 'x' ? '~$(dx)' : '~'%> <%a == 'y' ? '~$(dy)' : '~'%> <%a == 'z' ? '~$(dz)' : '~'%> unless block ~ ~ ~ #xpeco:target/ray_pass run function xpeco:bottle/normal/hit_<%a%>
+    }
 
-function hit_x {
-    execute if score #vx xpeco.tmp matches 1.. run scoreboard players set #nx xpeco.tmp -1
-    execute if score #vx xpeco.tmp matches ..-1 run scoreboard players set #nx xpeco.tmp 1
-}
-
-function probe_y {
-    execute store result storage xpeco:tmp dy double 0.0011 run scoreboard players get #vy xpeco.tmp
-    function xpeco:bottle/normal/probe_y_at with storage xpeco:tmp
-}
-
-function probe_y_at {
-    $execute positioned ~ ~$(dy) ~ unless block ~ ~ ~ #xpeco:target/ray_pass run function xpeco:bottle/normal/hit_y
-}
-
-function hit_y {
-    execute if score #vy xpeco.tmp matches 1.. run scoreboard players set #ny xpeco.tmp -1
-    execute if score #vy xpeco.tmp matches ..-1 run scoreboard players set #ny xpeco.tmp 1
-}
-
-function probe_z {
-    execute store result storage xpeco:tmp dz double 0.0011 run scoreboard players get #vz xpeco.tmp
-    function xpeco:bottle/normal/probe_z_at with storage xpeco:tmp
-}
-
-function probe_z_at {
-    $execute positioned ~ ~ ~$(dz) unless block ~ ~ ~ #xpeco:target/ray_pass run function xpeco:bottle/normal/hit_z
-}
-
-function hit_z {
-    execute if score #vz xpeco.tmp matches 1.. run scoreboard players set #nz xpeco.tmp -1
-    execute if score #vz xpeco.tmp matches ..-1 run scoreboard players set #nz xpeco.tmp 1
+    function hit_<%a%> {
+        execute if score #v<%a%> xpeco.tmp matches 1.. run scoreboard players set #n<%a%> xpeco.tmp -1
+        execute if score #v<%a%> xpeco.tmp matches ..-1 run scoreboard players set #n<%a%> xpeco.tmp 1
+    }
 }
 
 function normal_from_motion {
-    scoreboard players operation #nx xpeco.tmp -= #vx xpeco.tmp
-    scoreboard players operation #ny xpeco.tmp -= #vy xpeco.tmp
-    scoreboard players operation #nz xpeco.tmp -= #vz xpeco.tmp
+    REPEAT (['x', 'y', 'z']) as a {
+        eq #n<%a%> xpeco.tmp -= #v<%a%> xpeco.tmp
+    }
     execute if score #nx xpeco.tmp matches 0 if score #ny xpeco.tmp matches 0 if score #nz xpeco.tmp matches 0 run scoreboard players set #ny xpeco.tmp 1
 }

@@ -1,3 +1,4 @@
+import ../text/pay.js
 import ../config.js
 
 # Pay by list and confirm. /trigger pay set <amount> stores the amount in xpeco.pay.amt. A target in the crosshair goes
@@ -28,14 +29,14 @@ function on_uninstall xpeco:on_uninstall {
 
 function fresh {
     # As a player. Succeeds when there is a payment that has not expired, otherwise says why and fails.
-    execute unless score @s xpeco.pay.amt matches 1.. run tellraw @s {translate:"xpeco.pay.none",fallback:"No pending payment."}
+    execute unless score @s xpeco.pay.amt matches 1.. run tellraw @s <%payText.none%>
     execute unless score @s xpeco.pay.amt matches 1.. run return 0
     execute store result score #now xpeco.tmp run time query gametime
     scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
     scoreboard players operation #age xpeco.tmp -= @s xpeco.pay.at
     execute if score #age xpeco.tmp < #expire xpeco.cfg run return 1
     scoreboard players set @s xpeco.pay.amt 0
-    tellraw @s {translate:"xpeco.pay.expired",fallback:"The payment expired."}
+    tellraw @s <%payText.expired%>
     return 0
 }
 

@@ -1,4 +1,6 @@
+import ../text/request.js
 import ../config.js
+import predicate.js
 
 # The target answers with the chat buttons, which run /trigger xpeco.accept_charges (Pay) or /trigger xpeco.decline_payment (Decline).
 function load minecraft:load {
@@ -13,13 +15,13 @@ function on_uninstall xpeco:on_uninstall {
 
 function resolve {
     # As the player who answered. Leaves the requester tagged xpeco.target, with #amt set, or says why not and tags nobody.
-    execute if score @s xpeco.req.amt matches ..0 run return run tellraw @s {translate:"xpeco.request.none",fallback:"No pending request."}
+    execute if score @s xpeco.req.amt matches ..0 run return run tellraw @s <%requestText.none%>
     scoreboard players operation #amt xpeco.tmp = @s xpeco.req.amt
     scoreboard players operation #from xpeco.tmp = @s xpeco.req.from
     scoreboard players set @s xpeco.req.amt 0
     tag @a remove xpeco.target
     execute as @a if score @s xpeco.account = #from xpeco.tmp run tag @s add xpeco.target
-    execute unless entity @a[tag=xpeco.target] run tellraw @s {translate:"xpeco.request.gone",fallback:"The requester is not online."}
+    execute unless entity @a[tag=xpeco.target] run tellraw @s <%requestText.gone%>
 }
 
 function accept {
@@ -37,16 +39,23 @@ function decline {
     scoreboard players set @s xpeco.decline_payment 0
     function xpeco:reply/resolve
     execute unless entity @a[tag=xpeco.target] run return 0
-    tellraw @a[tag=xpeco.target,limit=1] {translate:"xpeco.request.declined",fallback:"%s declined your request.",with:[{selector:"@s"}]}
-    tellraw @s {translate:"xpeco.request.declined.self",fallback:"Request declined."}
+    tellraw @a[tag=xpeco.target,limit=1] <%requestText.declined%>
+    tellraw @s <%requestText.declinedSelf%>
     tag @a remove xpeco.target
 }
 
-function tick minecraft:tick {
-    scoreboard players enable @a xpeco.accept_charges
-    scoreboard players enable @a xpeco.decline_payment
-    execute as @a[scores={xpeco.accept_charges=1..}] run function xpeco:reply/accept
-    execute as @a[scores={xpeco.decline_payment=1..}] run function xpeco:reply/decline
-    scoreboard players set @a[scores={xpeco.accept_charges=..0}] xpeco.accept_charges 0
-    scoreboard players set @a[scores={xpeco.decline_payment=..0}] xpeco.decline_payment 0
+# Same single scan as the pay list buttons, see paylist/triggers.
+predicate fired {
+    <%nonzero(['xpeco.accept_charges', 'xpeco.decline_payment'])%>
+}
+
+function dispatch {
+    execute if score @s xpeco.accept_charges matches 1.. run function xpeco:reply/accept
+    execute if score @s xpeco.decline_payment matches 1.. run function xpeco:reply/decline
+    scoreboard players set @s[scores={xpeco.accept_charges=..0}] xpeco.accept_charges 0
+    scoreboard players set @s[scores={xpeco.decline_payment=..0}] xpeco.decline_payment 0
+}
+
+function tick xpeco:tick {
+    execute as @a[predicate=xpeco:reply/fired] run function xpeco:reply/dispatch
 }

@@ -1,0 +1,11 @@
+# Triggers go disabled after a player uses them, so they are enabled again here, once a second. A button clicked twice
+# within the second is refused by the game until the next enable.
+function enable {
+    REPEAT (['balance', 'pay', 'request', 'xpeco.accept_charges', 'xpeco.decline_payment', 'xpeco.pay_to', 'xpeco.pay_page', 'xpeco.pay_confirm', 'xpeco.pay_deny']) as t {
+        scoreboard players enable @a <%t%>
+    }
+}
+
+function tick xpeco:tick {
+    execute if score #n20 xpeco.tmp matches 0 run function xpeco:trigger/enable
+}

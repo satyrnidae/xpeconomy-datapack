@@ -1,3 +1,4 @@
+import ../text/bottle.js
 import ../config.js
 
 # XP bottles. Options from config.json: bottlePoints, bottleReachSteps.
@@ -12,7 +13,7 @@ function fill {
     execute if entity @s[gamemode=creative] run return run function xpeco:bottle/give
     scoreboard players set #bottle xpeco.tmp <%config.bottlePoints%>
     function xpeco:total/compute
-    execute if score @s xpeco.total < #bottle xpeco.tmp run return run tellraw @s {translate:"xpeco.bottle.lowbalance",fallback:"Not enough experience to fill a bottle, you need %s points.",with:[{score:{name:"#bottle",objective:"xpeco.tmp"}}]}
+    execute if score @s xpeco.total < #bottle xpeco.tmp run return run tellraw @s <%bottleText.lowBalance%>
     experience add @s -<%config.bottlePoints%> points
     clear @s minecraft:glass_bottle 1
     function xpeco:bottle/give

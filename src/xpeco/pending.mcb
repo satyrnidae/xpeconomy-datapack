@@ -1,4 +1,5 @@
 import ../config.js
+import predicate.js
 
 function load minecraft:load {
     scoreboard objectives add xpeco.pending dummy
@@ -19,8 +20,12 @@ function apply_macro {
     $experience add @s $(amount) points
 }
 
-function tick minecraft:tick {
-    # Offline ledger: holder is the player name, so an online player's own score is the same entry
-    execute as @a[scores={xpeco.pending=1..}] run function xpeco:pending/apply
-    execute as @a[scores={xpeco.pending=..-1}] run function xpeco:pending/apply
+# Offline ledger: holder is the player name, so an online player's own score is the same entry. Owed means a score that
+# is not zero, positive for a credit and negative for a debit, so one predicate covers both.
+predicate owed {
+    <%nonzero(['xpeco.pending'])%>
+}
+
+function tick xpeco:tick {
+    execute if score #n20 xpeco.tmp matches 0 as @a[predicate=xpeco:pending/owed] run function xpeco:pending/apply
 }

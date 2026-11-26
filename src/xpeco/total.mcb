@@ -24,33 +24,15 @@ function compute {
 
 function high {
     # (9L^2 - 325L + 4440) / 2
-    scoreboard players operation @s xpeco.total = @s xpeco.lvl
-    scoreboard players operation @s xpeco.total *= @s xpeco.lvl
-    scoreboard players operation @s xpeco.total *= #9 xpeco.tmp
-    scoreboard players operation #a xpeco.tmp = @s xpeco.lvl
-    scoreboard players operation #a xpeco.tmp *= #325 xpeco.tmp
-    scoreboard players operation @s xpeco.total -= #a xpeco.tmp
-    scoreboard players operation @s xpeco.total += #4440 xpeco.tmp
-    scoreboard players operation @s xpeco.total /= #2 xpeco.tmp
+    eq @s xpeco.total = (@s xpeco.lvl * @s xpeco.lvl * 9 - @s xpeco.lvl * 325 + 4440) / 2
 }
 
 function low {
     # L^2 + 6L
-    scoreboard players operation @s xpeco.total = @s xpeco.lvl
-    scoreboard players operation @s xpeco.total *= @s xpeco.lvl
-    scoreboard players operation #a xpeco.tmp = @s xpeco.lvl
-    scoreboard players operation #a xpeco.tmp *= #6 xpeco.tmp
-    scoreboard players operation @s xpeco.total += #a xpeco.tmp
+    eq @s xpeco.total = @s xpeco.lvl * @s xpeco.lvl + @s xpeco.lvl * 6
 }
 
 function mid {
     # (5L^2 - 81L + 720) / 2
-    scoreboard players operation @s xpeco.total = @s xpeco.lvl
-    scoreboard players operation @s xpeco.total *= @s xpeco.lvl
-    scoreboard players operation @s xpeco.total *= #5 xpeco.tmp
-    scoreboard players operation #a xpeco.tmp = @s xpeco.lvl
-    scoreboard players operation #a xpeco.tmp *= #81 xpeco.tmp
-    scoreboard players operation @s xpeco.total -= #a xpeco.tmp
-    scoreboard players operation @s xpeco.total += #720 xpeco.tmp
-    scoreboard players operation @s xpeco.total /= #2 xpeco.tmp
+    eq @s xpeco.total = (@s xpeco.lvl * @s xpeco.lvl * 5 - @s xpeco.lvl * 81 + 720) / 2
 }

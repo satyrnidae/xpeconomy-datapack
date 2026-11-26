@@ -1,4 +1,6 @@
+import ../text/request.js
 import ../config.js
+import predicate.js
 
 function load minecraft:load {
     scoreboard objectives add xpeco.req.from dummy
@@ -15,35 +17,38 @@ function on_uninstall xpeco:on_uninstall {
 }
 
 function run {
+    execute if score @s request matches ..-1 run return run scoreboard players set @s request 0
     # As and at the requester; the trigger score is the amount. One pending request per target, a new one replaces it.
     scoreboard players operation #amt xpeco.tmp = @s request
     scoreboard players set @s request 0
     function xpeco:target/find
-    execute unless entity @a[tag=xpeco.target] run return run tellraw @s {translate:"xpeco.request.notarget",fallback:"Look at the player you want to ask."}
+    execute unless entity @a[tag=xpeco.target] run return run tellraw @s <%requestText.notarget%>
     scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.from = @s xpeco.account
     scoreboard players operation @a[tag=xpeco.target,limit=1] xpeco.req.amt = #amt xpeco.tmp
     execute store result score @a[tag=xpeco.target,limit=1] xpeco.req.at run time query gametime
-    tellraw @a[tag=xpeco.target,limit=1] [{translate:"xpeco.request.received",fallback:"%s requests %s points. ",with:[{selector:"@s"},{score:{name:"#amt",objective:"xpeco.tmp"}}]},{text:"[Pay]",color:"green",click_event:{action:"run_command",command:"/trigger xpeco.accept_charges"},hover_event:{action:"show_text",value:{text:"Pay the requested amount"}}},{text:" "},{text:"[Decline]",color:"red",click_event:{action:"run_command",command:"/trigger xpeco.decline_payment"},hover_event:{action:"show_text",value:{text:"Refuse the request"}}}]
-    tellraw @s {translate:"xpeco.request.sent",fallback:"Requested %s points from %s.",with:[{score:{name:"#amt",objective:"xpeco.tmp"}},{selector:"@a[tag=xpeco.target,limit=1]"}]}
+    tellraw @a[tag=xpeco.target,limit=1] <%requestText.received%>
+    tellraw @s <%requestText.sent%>
     tag @a remove xpeco.target
 }
 
 function check_expiry {
-    # As a player holding a pending request. #now is the current game time.
+    # As a player holding a pending request, checked once a second.
+    execute store result score #now xpeco.tmp run time query gametime
     scoreboard players operation #age xpeco.tmp = #now xpeco.tmp
     scoreboard players operation #age xpeco.tmp -= @s xpeco.req.at
     execute if score #age xpeco.tmp < #expire xpeco.cfg run return 0
 
     scoreboard players operation #from xpeco.tmp = @s xpeco.req.from
     scoreboard players set @s xpeco.req.amt 0
-    tellraw @s {translate:"xpeco.request.expired",fallback:"The request expired."}
-    execute as @a if score @s xpeco.account = #from xpeco.tmp run tellraw @s {translate:"xpeco.request.expired.sender",fallback:"Your request expired."}
+    tellraw @s <%requestText.expired%>
+    execute as @a if score @s xpeco.account = #from xpeco.tmp run tellraw @s <%requestText.expiredSender%>
 }
 
-function tick minecraft:tick {
-    scoreboard players enable @a request
-    scoreboard players set @a[scores={request=..-1}] request 0
-    execute as @a[scores={request=1..}] at @s run function xpeco:request/run
-    execute store result score #now xpeco.tmp run time query gametime
-    execute as @a[scores={xpeco.req.amt=1..}] run function xpeco:request/check_expiry
+predicate fired {
+    <%nonzero(['request'])%>
+}
+
+function tick xpeco:tick {
+    execute as @a[predicate=xpeco:request/fired] at @s run function xpeco:request/run
+    execute if score #n20 xpeco.tmp matches 0 as @a[scores={xpeco.req.amt=1..}] run function xpeco:request/check_expiry
 }

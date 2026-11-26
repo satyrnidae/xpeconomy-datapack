@@ -44,7 +44,8 @@ function find {
     tag @a remove xpeco.target
     tag @s add xpeco.self
     scoreboard players set #steps xpeco.tmp <%config.rayStepCount%>
-    execute anchored eyes positioned ^ ^ ^ run function xpeco:target/ray
+    # Nobody else within the ray length plus a margin means nothing to find, so the walk is skipped
+    execute if entity @a[tag=!xpeco.self,distance=..<%config.rayStepCount * 0.25 + 2%>] anchored eyes positioned ^ ^ ^ run function xpeco:target/ray
     tag @s remove xpeco.self
 }
 

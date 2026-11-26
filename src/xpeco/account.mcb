@@ -82,7 +82,20 @@ function move_pending {
     $scoreboard players reset $(keep) xpeco.pending
 }
 
-function tick minecraft:tick {
-    execute as @a at @s unless score @s xpeco.named matches 1 run function xpeco:account/register
+# Named once record has stored a name
+predicate named {
+    "type": "minecraft:entity_scores",
+    "entity": "this",
+    "scores": {
+        "xpeco.named": {
+            "min": 1,
+            "max": 1
+        }
+    }
+}
+
+function tick xpeco:tick {
+    # Unnamed players are retried once a second, since each try spawns and kills an item
+    execute if score #n20 xpeco.tmp matches 0 as @a[predicate=!xpeco:account/named] at @s run function xpeco:account/register
     execute as @a[scores={xpeco.left=1..}] at @s run function xpeco:account/on_rejoin
 }

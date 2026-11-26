@@ -11,7 +11,7 @@ prefix so they stay out of the way of players typing commands, they are meant to
 | Command | Does |
 |---|---|
 | `/trigger balance` | Prints your balance in the configured mode |
-| `/trigger pay set <amount>` | Pays the player you are looking at, or lists every account to pick from when nobody is in the crosshair. Either way it asks to confirm first, and the prompt expires after 30 seconds |
+| `/trigger pay set <amount>` | Pays the player you are looking at, or lists every account to pick from when nobody is in the crosshair. Either way it asks to confirm first, with a button to pick someone else instead, and the prompt expires after 30 seconds |
 | `/trigger request set <amount>` | Asks the player you are looking at, with chat buttons, expires after 30 seconds |
 | `/trigger xpeco.accept_charges` | Pays a pending request, run by the chat button |
 | `/trigger xpeco.decline_payment` | Declines a pending request, run by the chat button |
@@ -44,3 +44,11 @@ npm run check
 
 `check` builds, then runs the level formula and uninstall checks, then PackLoad, CmdCheck and Scan from the 26.3 client jar.
 The Java checks need Java 25 and the harness cache from foxcraft-dungeon-loot-2, see `src/scripts/check_game.mjs`.
+
+Chat text is not written inline in the `.mcb` sources. Each component lives in `src/text/*.js`, built from the helpers in `src/text/lib.js` such as `button`, `tr`, `score` and `say`, and exported as a JSON string. A source imports the module and splices an entry in with `<%payText.confirm%>`. New text goes in the matching module, and a repeated shape gets a helper in `lib.js`.
+
+Repeated code uses mcb's compile-time features: `REPEAT` for the per-axis and per-channel functions, `eq` for scoreboard math, and `<% %>` for values from `.js` modules. Two eq rules: an `eq` can expand to several commands, so never put one after `execute ... run`, and write subtractions with the score first, since a constant minus a score inside a product comes out with the wrong sign. The eq temporaries and constants live in `xpeco.eq.var` and `xpeco.eq.const`, set in `mcb.config.js`.
+
+Selectors that need "not zero" or "no score yet" use predicates, since a selector score range cannot say either. `src/xpeco/predicate.js` builds the any_of predicate for a set of objectives. Pending credits, the pay list buttons, the request and reply buttons and pay each find their players with one predicate scan, and `account/named` selects players with no recorded name.
+
+Ticking: `xpeco:master` is the only function in `minecraft:tick`. It reads game time once, sets the throttle phases `#n2` and `#n20` in `xpeco.tmp`, then calls the function tag `#xpeco:tick`, where each module registers its own tick with `function tick xpeco:tick`. A module throttles itself with `execute if score #n20 xpeco.tmp matches 0 run ...`.

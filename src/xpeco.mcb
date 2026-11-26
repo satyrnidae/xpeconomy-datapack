@@ -1,3 +1,4 @@
+import text/core.js
 import ./config.js
 
 function load minecraft:load {
@@ -13,16 +14,6 @@ function load minecraft:load {
     scoreboard objectives add xpeco.tmp dummy
     scoreboard objectives add xpeco.cfg dummy
 
-    # Constants
-    scoreboard players set #2 xpeco.tmp 2
-    scoreboard players set #5 xpeco.tmp 5
-    scoreboard players set #6 xpeco.tmp 6
-    scoreboard players set #9 xpeco.tmp 9
-    scoreboard players set #81 xpeco.tmp 81
-    scoreboard players set #100 xpeco.tmp 100
-    scoreboard players set #325 xpeco.tmp 325
-    scoreboard players set #720 xpeco.tmp 720
-    scoreboard players set #4440 xpeco.tmp 4440
 
     # Display mode: 0 points, 1 levels, 2 per hundred. Only set when unset so /reload keeps it.
     execute unless score #mode xpeco.cfg = #mode xpeco.cfg run scoreboard players set #mode xpeco.cfg 0
@@ -34,7 +25,7 @@ function load minecraft:load {
 # Removes everything the pack created, then disables it. Run as an operator: /function xpeco:uninstall
 # Offline pending credits live in xpeco.pending and are discarded with it.
 function uninstall {
-    tellraw @s {text:"Uninstalling Experience Economy v<%config.version%>..."}
+    tellraw @s <%coreText.uninstalling%>
 
     # Each feature file removes its own objectives and tags through this tag
     function #xpeco:on_uninstall
@@ -42,9 +33,22 @@ function uninstall {
     data remove storage xpeco:tmp amount
 
     execute store success score #uninstall xpeco.cfg run datapack disable "file/<%config.packName%>"
-    execute unless score #uninstall xpeco.cfg matches 1 run tellraw @s [{text:"Pack folder name has changed. ",color:"red"},{text:"Finish with /datapack disable \"file/<pack folder>\"",color:"aqua"}]
-    execute if score #uninstall xpeco.cfg matches 1 run tellraw @s {text:"Experience Economy uninstalled.",color:"green"}
+    execute unless score #uninstall xpeco.cfg matches 1 run tellraw @s <%coreText.packFolder%>
+    execute if score #uninstall xpeco.cfg matches 1 run tellraw @s <%coreText.uninstalled%>
 
     scoreboard objectives remove xpeco.tmp
     scoreboard objectives remove xpeco.cfg
+    REPEAT (eqObjectives) as objective {
+        scoreboard objectives remove <%objective%>
+    }
+}
+
+# Every module registers its tick in the function tag xpeco:tick, and this is the only function in minecraft:tick. It reads
+# game time once and leaves the throttle phases in scores, so a module throttles itself with one score compare:
+# execute if score #n20 xpeco.tmp matches 0 run ... Game time keeps counting when the world clock is paused.
+function master minecraft:tick {
+    execute store result score #g xpeco.tmp run time query gametime
+    eq #n2 xpeco.tmp = #g xpeco.tmp % 2
+    eq #n20 xpeco.tmp = #g xpeco.tmp % 20
+    function #xpeco:tick
 }

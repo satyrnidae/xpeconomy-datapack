@@ -1,3 +1,5 @@
+import color.js
+
 # Locator bar color of a player, stored as "#rrggbb" in entry.color for the pay list. An explicit color on the player's
 # locator_bar_icon wins. Without one the client derives the color from the UUID: ARGB.color(255, uuid.hashCode()), then
 # ARGB.setBrightness(.., 0.9f), which keeps hue and saturation and pins brightness. The hash of a UUID is the xor of its
@@ -6,11 +8,6 @@
 
 function compute {
     # As a player. Sets entry.color.
-    scoreboard players set #c2 xpeco.tmp 2
-    scoreboard players set #c16 xpeco.tmp 16
-    scoreboard players set #c256 xpeco.tmp 256
-    scoreboard players set #c1000 xpeco.tmp 1000
-    scoreboard players set #c24 xpeco.tmp 16777216
     execute if data entity @s locator_bar_icon.color run function xpeco:account/color/explicit
     execute unless data entity @s locator_bar_icon.color run function xpeco:account/color/hashed
     function xpeco:account/color/hex
@@ -18,17 +15,16 @@ function compute {
 
 function explicit {
     execute store result score #x xpeco.tmp run data get entity @s locator_bar_icon.color
-    scoreboard players operation #x xpeco.tmp %= #c24 xpeco.tmp
+    eq #x xpeco.tmp %= 16777216
     function xpeco:account/color/split
 }
 
 function hashed {
-    execute store result score #u0 xpeco.tmp run data get entity @s UUID[0]
-    execute store result score #u1 xpeco.tmp run data get entity @s UUID[1]
-    execute store result score #u2 xpeco.tmp run data get entity @s UUID[2]
-    execute store result score #u3 xpeco.tmp run data get entity @s UUID[3]
-    scoreboard players set #x xpeco.tmp 0
-    scoreboard players set #p xpeco.tmp 1
+    REPEAT (0, 3) as i {
+        execute store result score #u<%i%> xpeco.tmp run data get entity @s UUID[<%i%>]
+    }
+    eq #x xpeco.tmp = 0
+    eq #p xpeco.tmp = 1
     function xpeco:account/color/xor_bit
     function xpeco:account/color/split
     function xpeco:account/color/brighten
@@ -36,167 +32,98 @@ function hashed {
 
 function xor_bit {
     # Bit #p of the xor of the four ints. Scoreboard division floors, so negative ints give the right bits too.
-    scoreboard players set #s xpeco.tmp 0
-    scoreboard players operation #b xpeco.tmp = #u0 xpeco.tmp
-    scoreboard players operation #b xpeco.tmp /= #p xpeco.tmp
-    scoreboard players operation #b xpeco.tmp %= #c2 xpeco.tmp
-    scoreboard players operation #s xpeco.tmp += #b xpeco.tmp
-    scoreboard players operation #b xpeco.tmp = #u1 xpeco.tmp
-    scoreboard players operation #b xpeco.tmp /= #p xpeco.tmp
-    scoreboard players operation #b xpeco.tmp %= #c2 xpeco.tmp
-    scoreboard players operation #s xpeco.tmp += #b xpeco.tmp
-    scoreboard players operation #b xpeco.tmp = #u2 xpeco.tmp
-    scoreboard players operation #b xpeco.tmp /= #p xpeco.tmp
-    scoreboard players operation #b xpeco.tmp %= #c2 xpeco.tmp
-    scoreboard players operation #s xpeco.tmp += #b xpeco.tmp
-    scoreboard players operation #b xpeco.tmp = #u3 xpeco.tmp
-    scoreboard players operation #b xpeco.tmp /= #p xpeco.tmp
-    scoreboard players operation #b xpeco.tmp %= #c2 xpeco.tmp
-    scoreboard players operation #s xpeco.tmp += #b xpeco.tmp
-    scoreboard players operation #s xpeco.tmp %= #c2 xpeco.tmp
-    scoreboard players operation #s xpeco.tmp *= #p xpeco.tmp
-    scoreboard players operation #x xpeco.tmp += #s xpeco.tmp
-    scoreboard players operation #p xpeco.tmp *= #c2 xpeco.tmp
+    eq #s xpeco.tmp = 0
+    REPEAT (0, 3) as i {
+        eq #s xpeco.tmp += #u<%i%> xpeco.tmp / #p xpeco.tmp % 2
+    }
+    eq #x xpeco.tmp += (#s xpeco.tmp % 2) * #p xpeco.tmp
+    eq #p xpeco.tmp *= 2
     execute if score #p xpeco.tmp matches ..8388608 run function xpeco:account/color/xor_bit
 }
 
 function split {
-    scoreboard players operation #R xpeco.tmp = #x xpeco.tmp
-    scoreboard players set #c65536 xpeco.tmp 65536
-    scoreboard players operation #R xpeco.tmp /= #c65536 xpeco.tmp
-    scoreboard players operation #G xpeco.tmp = #x xpeco.tmp
-    scoreboard players operation #G xpeco.tmp /= #c256 xpeco.tmp
-    scoreboard players operation #G xpeco.tmp %= #c256 xpeco.tmp
-    scoreboard players operation #B xpeco.tmp = #x xpeco.tmp
-    scoreboard players operation #B xpeco.tmp %= #c256 xpeco.tmp
+    eq #R xpeco.tmp = #x xpeco.tmp / 65536
+    eq #G xpeco.tmp = #x xpeco.tmp / 256 % 256
+    eq #B xpeco.tmp = #x xpeco.tmp % 256
 }
 
 function brighten {
     # setBrightness(.., 0.9) on #R #G #B in thousandths. V is 0.9 * 255 rounded.
-    scoreboard players set #V xpeco.tmp 230
+    eq #V xpeco.tmp = 230
     scoreboard players operation #max xpeco.tmp = #R xpeco.tmp
     scoreboard players operation #max xpeco.tmp > #G xpeco.tmp
     scoreboard players operation #max xpeco.tmp > #B xpeco.tmp
     scoreboard players operation #min xpeco.tmp = #R xpeco.tmp
     scoreboard players operation #min xpeco.tmp < #G xpeco.tmp
     scoreboard players operation #min xpeco.tmp < #B xpeco.tmp
-    scoreboard players operation #d xpeco.tmp = #max xpeco.tmp
-    scoreboard players operation #d xpeco.tmp -= #min xpeco.tmp
+    eq #d xpeco.tmp = #max xpeco.tmp - #min xpeco.tmp
+
     # Gray stays gray
-    execute if score #d xpeco.tmp matches 0 run scoreboard players operation #R xpeco.tmp = #V xpeco.tmp
-    execute if score #d xpeco.tmp matches 0 run scoreboard players operation #G xpeco.tmp = #V xpeco.tmp
-    execute if score #d xpeco.tmp matches 0 run scoreboard players operation #B xpeco.tmp = #V xpeco.tmp
-    execute if score #d xpeco.tmp matches 0 run return 0
+    execute if score #d xpeco.tmp matches 0 run return run function xpeco:account/color/gray
 
-    scoreboard players operation #S xpeco.tmp = #d xpeco.tmp
-    scoreboard players operation #S xpeco.tmp *= #c1000 xpeco.tmp
-    scoreboard players operation #S xpeco.tmp /= #max xpeco.tmp
-    scoreboard players operation #fr xpeco.tmp = #max xpeco.tmp
-    scoreboard players operation #fr xpeco.tmp -= #R xpeco.tmp
-    scoreboard players operation #fr xpeco.tmp *= #c1000 xpeco.tmp
-    scoreboard players operation #fr xpeco.tmp /= #d xpeco.tmp
-    scoreboard players operation #fg xpeco.tmp = #max xpeco.tmp
-    scoreboard players operation #fg xpeco.tmp -= #G xpeco.tmp
-    scoreboard players operation #fg xpeco.tmp *= #c1000 xpeco.tmp
-    scoreboard players operation #fg xpeco.tmp /= #d xpeco.tmp
-    scoreboard players operation #fb xpeco.tmp = #max xpeco.tmp
-    scoreboard players operation #fb xpeco.tmp -= #B xpeco.tmp
-    scoreboard players operation #fb xpeco.tmp *= #c1000 xpeco.tmp
-    scoreboard players operation #fb xpeco.tmp /= #d xpeco.tmp
+    eq #S xpeco.tmp = #d xpeco.tmp * 1000 / #max xpeco.tmp
+    eq #fr xpeco.tmp = (#max xpeco.tmp - #R xpeco.tmp) * 1000 / #d xpeco.tmp
+    eq #fg xpeco.tmp = (#max xpeco.tmp - #G xpeco.tmp) * 1000 / #d xpeco.tmp
+    eq #fb xpeco.tmp = (#max xpeco.tmp - #B xpeco.tmp) * 1000 / #d xpeco.tmp
+    function xpeco:account/color/hue
 
-    # Hue times six, in thousandths
-    execute if score #R xpeco.tmp = #max xpeco.tmp run scoreboard players operation #h xpeco.tmp = #fb xpeco.tmp
-    execute if score #R xpeco.tmp = #max xpeco.tmp run scoreboard players operation #h xpeco.tmp -= #fg xpeco.tmp
-    execute unless score #R xpeco.tmp = #max xpeco.tmp if score #G xpeco.tmp = #max xpeco.tmp run scoreboard players set #h xpeco.tmp 2000
-    execute unless score #R xpeco.tmp = #max xpeco.tmp if score #G xpeco.tmp = #max xpeco.tmp run scoreboard players operation #h xpeco.tmp += #fr xpeco.tmp
-    execute unless score #R xpeco.tmp = #max xpeco.tmp if score #G xpeco.tmp = #max xpeco.tmp run scoreboard players operation #h xpeco.tmp -= #fb xpeco.tmp
-    execute unless score #R xpeco.tmp = #max xpeco.tmp unless score #G xpeco.tmp = #max xpeco.tmp run scoreboard players set #h xpeco.tmp 4000
-    execute unless score #R xpeco.tmp = #max xpeco.tmp unless score #G xpeco.tmp = #max xpeco.tmp run scoreboard players operation #h xpeco.tmp += #fg xpeco.tmp
-    execute unless score #R xpeco.tmp = #max xpeco.tmp unless score #G xpeco.tmp = #max xpeco.tmp run scoreboard players operation #h xpeco.tmp -= #fr xpeco.tmp
+    # p = V(1-S), q = V(1-S*f), t = V(1-S*(1-f)), rounded to a byte. Written with the score first in every subtraction,
+    # since eq turns a constant minus a score inside a product into the wrong sign.
+    eq #p xpeco.tmp = (#V xpeco.tmp * 1000 - #V xpeco.tmp * #S xpeco.tmp + 500) / 1000
+    eq #a xpeco.tmp = #S xpeco.tmp * #f xpeco.tmp / 1000
+    eq #q xpeco.tmp = (#V xpeco.tmp * 1000 - #V xpeco.tmp * #a xpeco.tmp + 500) / 1000
+    eq #a xpeco.tmp = #S xpeco.tmp - #a xpeco.tmp
+    eq #t xpeco.tmp = (#V xpeco.tmp * 1000 - #V xpeco.tmp * #a xpeco.tmp + 500) / 1000
+
+    # The sector picks which of V, p, q, t each channel gets
+    REPEAT (0, 5) as s {
+        REPEAT ({R: 0, G: 1, B: 2}) as channel, k {
+            execute if score #sec xpeco.tmp matches <%s%> run scoreboard players operation #<%channel%> xpeco.tmp = #<%sectors[s][k]%> xpeco.tmp
+        }
+    }
+}
+
+function gray {
+    eq #R xpeco.tmp = #V xpeco.tmp
+    eq #G xpeco.tmp = #V xpeco.tmp
+    eq #B xpeco.tmp = #V xpeco.tmp
+}
+
+function hue {
+    # Hue times six in thousandths, from whichever channel is the max, as #h with its sector #sec and fraction #f. An eq can
+    # expand to several commands, so it never follows an execute; each case is its own function.
+    execute if score #R xpeco.tmp = #max xpeco.tmp run function xpeco:account/color/hue_r
+    execute unless score #R xpeco.tmp = #max xpeco.tmp if score #G xpeco.tmp = #max xpeco.tmp run function xpeco:account/color/hue_g
+    execute unless score #R xpeco.tmp = #max xpeco.tmp unless score #G xpeco.tmp = #max xpeco.tmp run function xpeco:account/color/hue_b
     execute if score #h xpeco.tmp matches ..-1 run scoreboard players add #h xpeco.tmp 6000
-    scoreboard players operation #sec xpeco.tmp = #h xpeco.tmp
-    scoreboard players operation #sec xpeco.tmp /= #c1000 xpeco.tmp
-    scoreboard players operation #f xpeco.tmp = #h xpeco.tmp
-    scoreboard players operation #f xpeco.tmp %= #c1000 xpeco.tmp
+    eq #sec xpeco.tmp = #h xpeco.tmp / 1000
+    eq #f xpeco.tmp = #h xpeco.tmp % 1000
+}
 
-    # p = V(1-S), q = V(1-S*f), t = V(1-S*(1-f)), rounded to a byte
-    scoreboard players operation #p xpeco.tmp = #c1000 xpeco.tmp
-    scoreboard players operation #p xpeco.tmp -= #S xpeco.tmp
-    scoreboard players operation #p xpeco.tmp *= #V xpeco.tmp
-    scoreboard players add #p xpeco.tmp 500
-    scoreboard players operation #p xpeco.tmp /= #c1000 xpeco.tmp
-    scoreboard players operation #a xpeco.tmp = #S xpeco.tmp
-    scoreboard players operation #a xpeco.tmp *= #f xpeco.tmp
-    scoreboard players operation #a xpeco.tmp /= #c1000 xpeco.tmp
-    scoreboard players operation #q xpeco.tmp = #c1000 xpeco.tmp
-    scoreboard players operation #q xpeco.tmp -= #a xpeco.tmp
-    scoreboard players operation #q xpeco.tmp *= #V xpeco.tmp
-    scoreboard players add #q xpeco.tmp 500
-    scoreboard players operation #q xpeco.tmp /= #c1000 xpeco.tmp
-    scoreboard players operation #a xpeco.tmp = #c1000 xpeco.tmp
-    scoreboard players operation #a xpeco.tmp -= #f xpeco.tmp
-    scoreboard players operation #a xpeco.tmp *= #S xpeco.tmp
-    scoreboard players operation #a xpeco.tmp /= #c1000 xpeco.tmp
-    scoreboard players operation #t xpeco.tmp = #c1000 xpeco.tmp
-    scoreboard players operation #t xpeco.tmp -= #a xpeco.tmp
-    scoreboard players operation #t xpeco.tmp *= #V xpeco.tmp
-    scoreboard players add #t xpeco.tmp 500
-    scoreboard players operation #t xpeco.tmp /= #c1000 xpeco.tmp
+function hue_r {
+    eq #h xpeco.tmp = #fb xpeco.tmp - #fg xpeco.tmp
+}
 
-    # Sector picks which of V, p, q, t each channel gets
-    execute if score #sec xpeco.tmp matches 0 run scoreboard players operation #R xpeco.tmp = #V xpeco.tmp
-    execute if score #sec xpeco.tmp matches 0 run scoreboard players operation #G xpeco.tmp = #t xpeco.tmp
-    execute if score #sec xpeco.tmp matches 0 run scoreboard players operation #B xpeco.tmp = #p xpeco.tmp
-    execute if score #sec xpeco.tmp matches 1 run scoreboard players operation #R xpeco.tmp = #q xpeco.tmp
-    execute if score #sec xpeco.tmp matches 1 run scoreboard players operation #G xpeco.tmp = #V xpeco.tmp
-    execute if score #sec xpeco.tmp matches 1 run scoreboard players operation #B xpeco.tmp = #p xpeco.tmp
-    execute if score #sec xpeco.tmp matches 2 run scoreboard players operation #R xpeco.tmp = #p xpeco.tmp
-    execute if score #sec xpeco.tmp matches 2 run scoreboard players operation #G xpeco.tmp = #V xpeco.tmp
-    execute if score #sec xpeco.tmp matches 2 run scoreboard players operation #B xpeco.tmp = #t xpeco.tmp
-    execute if score #sec xpeco.tmp matches 3 run scoreboard players operation #R xpeco.tmp = #p xpeco.tmp
-    execute if score #sec xpeco.tmp matches 3 run scoreboard players operation #G xpeco.tmp = #q xpeco.tmp
-    execute if score #sec xpeco.tmp matches 3 run scoreboard players operation #B xpeco.tmp = #V xpeco.tmp
-    execute if score #sec xpeco.tmp matches 4 run scoreboard players operation #R xpeco.tmp = #t xpeco.tmp
-    execute if score #sec xpeco.tmp matches 4 run scoreboard players operation #G xpeco.tmp = #p xpeco.tmp
-    execute if score #sec xpeco.tmp matches 4 run scoreboard players operation #B xpeco.tmp = #V xpeco.tmp
-    execute if score #sec xpeco.tmp matches 5 run scoreboard players operation #R xpeco.tmp = #V xpeco.tmp
-    execute if score #sec xpeco.tmp matches 5 run scoreboard players operation #G xpeco.tmp = #p xpeco.tmp
-    execute if score #sec xpeco.tmp matches 5 run scoreboard players operation #B xpeco.tmp = #q xpeco.tmp
+function hue_g {
+    eq #h xpeco.tmp = 2000 + #fr xpeco.tmp - #fb xpeco.tmp
+}
+
+function hue_b {
+    eq #h xpeco.tmp = 4000 + #fg xpeco.tmp - #fr xpeco.tmp
 }
 
 function hex {
     # #R #G #B to entry.color as "#rrggbb", one digit at a time from a lookup list
     data modify storage xpeco:tmp digits set value ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
-    scoreboard players operation #hi xpeco.tmp = #R xpeco.tmp
-    scoreboard players operation #hi xpeco.tmp /= #c16 xpeco.tmp
-    scoreboard players operation #lo xpeco.tmp = #R xpeco.tmp
-    scoreboard players operation #lo xpeco.tmp %= #c16 xpeco.tmp
-    execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #hi xpeco.tmp
-    data modify storage xpeco:tmp arg.k set value "a"
-    function xpeco:account/color/digit with storage xpeco:tmp arg
-    execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #lo xpeco.tmp
-    data modify storage xpeco:tmp arg.k set value "b"
-    function xpeco:account/color/digit with storage xpeco:tmp arg
-    scoreboard players operation #hi xpeco.tmp = #G xpeco.tmp
-    scoreboard players operation #hi xpeco.tmp /= #c16 xpeco.tmp
-    scoreboard players operation #lo xpeco.tmp = #G xpeco.tmp
-    scoreboard players operation #lo xpeco.tmp %= #c16 xpeco.tmp
-    execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #hi xpeco.tmp
-    data modify storage xpeco:tmp arg.k set value "c"
-    function xpeco:account/color/digit with storage xpeco:tmp arg
-    execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #lo xpeco.tmp
-    data modify storage xpeco:tmp arg.k set value "d"
-    function xpeco:account/color/digit with storage xpeco:tmp arg
-    scoreboard players operation #hi xpeco.tmp = #B xpeco.tmp
-    scoreboard players operation #hi xpeco.tmp /= #c16 xpeco.tmp
-    scoreboard players operation #lo xpeco.tmp = #B xpeco.tmp
-    scoreboard players operation #lo xpeco.tmp %= #c16 xpeco.tmp
-    execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #hi xpeco.tmp
-    data modify storage xpeco:tmp arg.k set value "e"
-    function xpeco:account/color/digit with storage xpeco:tmp arg
-    execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #lo xpeco.tmp
-    data modify storage xpeco:tmp arg.k set value "f"
-    function xpeco:account/color/digit with storage xpeco:tmp arg
+    REPEAT (['R', 'G', 'B']) as channel {
+        eq #hi xpeco.tmp = #<%channel%> xpeco.tmp / 16
+        eq #lo xpeco.tmp = #<%channel%> xpeco.tmp % 16
+        REPEAT (['hi', 'lo']) as half {
+            execute store result storage xpeco:tmp arg.n int 1 run scoreboard players get #<%half%> xpeco.tmp
+            data modify storage xpeco:tmp arg.k set value "<%channel%><%half%>"
+            function xpeco:account/color/digit with storage xpeco:tmp arg
+        }
+    }
     function xpeco:account/color/apply with storage xpeco:tmp hx
 }
 
@@ -205,7 +132,7 @@ function digit {
 }
 
 function apply {
-    $data modify storage xpeco:tmp entry.color set value "#$(a)$(b)$(c)$(d)$(e)$(f)"
+    $data modify storage xpeco:tmp entry.color set value "#$(Rhi)$(Rlo)$(Ghi)$(Glo)$(Bhi)$(Blo)"
 }
 
 function backfill {

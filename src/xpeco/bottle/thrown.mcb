@@ -10,10 +10,16 @@ import ../../config.js
 # Total points of a player near a bottle in flight, from the last tick
 function load minecraft:load {
     scoreboard objectives add xpeco.bottle_prev dummy
+    REPEAT (['xpeco.trace_px', 'xpeco.trace_py', 'xpeco.trace_pz', 'xpeco.trace_vx', 'xpeco.trace_vy', 'xpeco.trace_vz']) as o {
+        scoreboard objectives add <%o%> dummy
+    }
 }
 
 function on_uninstall xpeco:on_uninstall {
     scoreboard objectives remove xpeco.bottle_prev
+    REPEAT (['xpeco.trace_px', 'xpeco.trace_py', 'xpeco.trace_pz', 'xpeco.trace_vx', 'xpeco.trace_vy', 'xpeco.trace_vz']) as o {
+        scoreboard objectives remove <%o%>
+    }
     kill @e[type=minecraft:marker,tag=xpeco.bottle_tracker]
     tag @e[type=minecraft:experience_bottle] remove xpeco.tracked_bottle
     tag @e[type=minecraft:experience_bottle] remove xpeco.ignored
@@ -46,7 +52,8 @@ function check_tracker {
     execute if score #v xpeco.tmp matches 0 run return run function xpeco:bottle/thrown/landed
     # In flight. Keep the speed of the marker current, and remember the totals of players the bottle could hit.
     function xpeco:bottle/thrown/trace
-    execute as @a[distance=..3] run function xpeco:bottle/thrown/snapshot
+    # Only a player within 2 blocks can be handed the orbs on landing, so only they are snapshotted
+    execute as @a[distance=..2] run function xpeco:bottle/thrown/snapshot
 }
 
 function snapshot {
@@ -59,8 +66,7 @@ function take_back {
     # them, so what they gained since the last snapshot is taken back. 11 is the most a vanilla bottle gives, which keeps
     # an unrelated gain from being undone.
     function xpeco:total/compute
-    scoreboard players operation #d xpeco.tmp = @s xpeco.total
-    scoreboard players operation #d xpeco.tmp -= @s xpeco.bottle_prev
+    eq #d xpeco.tmp = @s xpeco.total - @s xpeco.bottle_prev
     execute unless score #d xpeco.tmp matches 1..11 run return 0
     execute store result storage xpeco:tmp delta int 1 run scoreboard players get #d xpeco.tmp
     function xpeco:bottle/thrown/take_back_macro with storage xpeco:tmp
@@ -71,30 +77,22 @@ function take_back_macro {
 }
 
 function trace {
-    # As the tracker. Position and speed live in the data tag of the marker, in thousandths of a block. Speed is the change
+    # As the tracker. Position and speed are scores on the marker, in thousandths of a block, so the only entity NBT read per
+    # tick is the position. Speed is the change
     # since the last tick, so when the bottle lands it is the speed of its last step.
-    execute store result score #cx xpeco.tmp run data get entity @s Pos[0] 1000
-    execute store result score #cy xpeco.tmp run data get entity @s Pos[1] 1000
-    execute store result score #cz xpeco.tmp run data get entity @s Pos[2] 1000
-    execute if data entity @s data.px run function xpeco:bottle/thrown/trace_speed
-    execute store result entity @s data.px int 1 run scoreboard players get #cx xpeco.tmp
-    execute store result entity @s data.py int 1 run scoreboard players get #cy xpeco.tmp
-    execute store result entity @s data.pz int 1 run scoreboard players get #cz xpeco.tmp
+    REPEAT ({x: 0, y: 1, z: 2}) as a, i {
+        execute store result score #c<%a%> xpeco.tmp run data get entity @s Pos[<%i%>] 1000
+    }
+    execute if score @s xpeco.trace_px = @s xpeco.trace_px run function xpeco:bottle/thrown/trace_speed
+    REPEAT (['x', 'y', 'z']) as a {
+        eq @s xpeco.trace_p<%a%> = #c<%a%> xpeco.tmp
+    }
 }
 
 function trace_speed {
-    execute store result score #px xpeco.tmp run data get entity @s data.px
-    execute store result score #py xpeco.tmp run data get entity @s data.py
-    execute store result score #pz xpeco.tmp run data get entity @s data.pz
-    scoreboard players operation #vx xpeco.tmp = #cx xpeco.tmp
-    scoreboard players operation #vy xpeco.tmp = #cy xpeco.tmp
-    scoreboard players operation #vz xpeco.tmp = #cz xpeco.tmp
-    scoreboard players operation #vx xpeco.tmp -= #px xpeco.tmp
-    scoreboard players operation #vy xpeco.tmp -= #py xpeco.tmp
-    scoreboard players operation #vz xpeco.tmp -= #pz xpeco.tmp
-    execute store result entity @s data.vx int 1 run scoreboard players get #vx xpeco.tmp
-    execute store result entity @s data.vy int 1 run scoreboard players get #vy xpeco.tmp
-    execute store result entity @s data.vz int 1 run scoreboard players get #vz xpeco.tmp
+    REPEAT (['x', 'y', 'z']) as a {
+        eq @s xpeco.trace_v<%a%> = #c<%a%> xpeco.tmp - @s xpeco.trace_p<%a%>
+    }
 }
 
 function landed {
@@ -108,7 +106,7 @@ function landed {
     kill @s
 }
 
-function tick minecraft:tick {
+function tick xpeco:tick {
     execute as @e[type=minecraft:experience_bottle,tag=!xpeco.tracked_bottle,tag=!xpeco.ignored] at @s run function xpeco:bottle/thrown/classify
     execute as @e[type=minecraft:marker,tag=xpeco.bottle_tracker] at @s run function xpeco:bottle/thrown/check_tracker
     execute as @a[scores={xpeco.bottle_prev=0..}] at @s unless entity @e[type=minecraft:marker,tag=xpeco.bottle_tracker,distance=..4] run scoreboard players reset @s xpeco.bottle_prev

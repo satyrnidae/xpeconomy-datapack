@@ -1,23 +1,19 @@
+import ../../text/pay.js
 # The paged account list: every account but the payer's own, 15 a page in three columns of five.
 
 function show {
     # As the payer. Shows the page in xpeco.pay.page.
     function xpeco:paylist/list/build_view
     execute store result score #n xpeco.tmp run data get storage xpeco:tmp view
-    execute if score #n xpeco.tmp matches 0 run return run tellraw @s {translate:"xpeco.pay.empty",fallback:"No other accounts to pay yet."}
-    scoreboard players operation #pages xpeco.tmp = #n xpeco.tmp
-    scoreboard players add #pages xpeco.tmp 14
-    scoreboard players set #15 xpeco.tmp 15
-    scoreboard players operation #pages xpeco.tmp /= #15 xpeco.tmp
-    scoreboard players operation #p xpeco.tmp = @s xpeco.pay.page
+    execute if score #n xpeco.tmp matches 0 run return run tellraw @s <%payText.empty%>
+    eq #pages xpeco.tmp = (#n xpeco.tmp + 14) / 15
+    eq #p xpeco.tmp = @s xpeco.pay.page
     execute if score #p xpeco.tmp matches ..0 run scoreboard players set #p xpeco.tmp 1
     execute if score #p xpeco.tmp > #pages xpeco.tmp run scoreboard players operation #p xpeco.tmp = #pages xpeco.tmp
-    scoreboard players operation @s xpeco.pay.page = #p xpeco.tmp
-    scoreboard players operation #start xpeco.tmp = #p xpeco.tmp
-    scoreboard players remove #start xpeco.tmp 1
-    scoreboard players operation #start xpeco.tmp *= #15 xpeco.tmp
+    eq @s xpeco.pay.page = #p xpeco.tmp
+    eq #start xpeco.tmp = (#p xpeco.tmp - 1) * 15
 
-    tellraw @s {translate:"xpeco.pay.pick",fallback:"Pay %s points to, page %s of %s:",with:[{score:{name:"@s",objective:"xpeco.pay.amt"}},{score:{name:"#p",objective:"xpeco.tmp"}},{score:{name:"#pages",objective:"xpeco.tmp"}}]}
+    tellraw @s <%payText.pick%>
     scoreboard players set #r xpeco.tmp 0
     function xpeco:paylist/list/rows
 
@@ -34,7 +30,7 @@ function show {
 }
 
 function footer {
-    $tellraw @s [{text:"[< Prev]",color:"gray",click_event:{action:"run_command",command:"/trigger xpeco.pay_page set $(prev)"}},{text:"  "},{text:"[Next >]",color:"gray",click_event:{action:"run_command",command:"/trigger xpeco.pay_page set $(next)"}}]
+    $tellraw @s <%payText.footer%>
 }
 
 function build_view {
@@ -55,14 +51,12 @@ function build_next {
 function rows {
     # One chat line per row, #r 0 to 4. Column c holds the entry at #start + #r + 5c.
     data modify storage xpeco:tmp row set value []
-    scoreboard players operation #i xpeco.tmp = #start xpeco.tmp
-    scoreboard players operation #i xpeco.tmp += #r xpeco.tmp
-    function xpeco:paylist/list/cell_at
-    scoreboard players add #i xpeco.tmp 5
-    function xpeco:paylist/list/cell_at
-    scoreboard players add #i xpeco.tmp 5
-    function xpeco:paylist/list/cell_at
-    execute if data storage xpeco:tmp row[0] run tellraw @s {nbt:"row[]",storage:"xpeco:tmp",interpret:true,separator:""}
+    eq #i xpeco.tmp = #start xpeco.tmp + #r xpeco.tmp
+    REPEAT (0, 2) {
+        function xpeco:paylist/list/cell_at
+        eq #i xpeco.tmp += 5
+    }
+    execute if data storage xpeco:tmp row[0] run tellraw @s <%payText.row%>
     scoreboard players add #r xpeco.tmp 1
     execute if score #r xpeco.tmp matches ..4 run function xpeco:paylist/list/rows
 }
@@ -83,7 +77,7 @@ function cell_index {
 function cell {
     # The click and hover sit on the parent, so the head and the name both act as the button. No hover text, the line above the grid already says this is a payment. The head is a player object
     # component resolved from the stored name. Brackets and name take the locator bar color.
-    $data modify storage xpeco:tmp row append value {text:"[",click_event:{action:"run_command",command:"/trigger xpeco.pay_to set $(id)"},color:"$(color)",extra:[{object:"player",player:{name:"$(name)"},color:"white"},{text:" $(name)"},{text:"]"}]}
+    $data modify storage xpeco:tmp row append value <%payText.cell%>
     # The gap after the entry is its own component, outside the click, so a miss next to a name does nothing
-    data modify storage xpeco:tmp row append value {text:"   "}
+    data modify storage xpeco:tmp row append value <%payText.cellGap%>
 }

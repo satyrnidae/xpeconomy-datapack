@@ -1,4 +1,6 @@
+import ../text/pay.js
 import ../config.js
+import predicate.js
 
 # /trigger pay set <amount> while looking at the target player
 function load minecraft:load {
@@ -10,7 +12,8 @@ function on_uninstall xpeco:on_uninstall {
 }
 
 function run {
-    # As and at the payer; the trigger score is the amount
+    # As and at the payer; the trigger score is the amount. A negative one is dropped.
+    execute if score @s pay matches ..-1 run return run scoreboard players set @s pay 0
     scoreboard players operation #amt xpeco.tmp = @s pay
     scoreboard players set @s pay 0
     # The amount waits for a confirmation. A player in the crosshair is the target; otherwise a list of accounts is offered.
@@ -28,12 +31,12 @@ function run {
 function offline {
     # As the payer, with #amt and #to (the target account) set. Pays an account that is not online through the pending ledger.
     function xpeco:total/compute
-    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s {translate:"xpeco.pay.insufficient",fallback:"Not enough experience."}
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s <%payText.insufficient%>
     data remove storage xpeco:tmp name
     execute store result storage xpeco:tmp id int 1 run scoreboard players get #to xpeco.tmp
     execute store result storage xpeco:tmp amount int 1 run scoreboard players get #amt xpeco.tmp
     function xpeco:pay/offline_name with storage xpeco:tmp
-    execute unless data storage xpeco:tmp name run return run tellraw @s {translate:"xpeco.pay.unknown",fallback:"Unknown account."}
+    execute unless data storage xpeco:tmp name run return run tellraw @s <%payText.unknown%>
     function xpeco:pay/offline_credit with storage xpeco:tmp
 }
 
@@ -44,17 +47,17 @@ function offline_name {
 function offline_credit {
     $experience add @s -$(amount) points
     $scoreboard players add $(name) xpeco.pending $(amount)
-    $tellraw @s {translate:"xpeco.pay.sent",fallback:"Paid %s %s points.",with:[{text:"$(name)"},{text:"$(amount)"}]}
+    $tellraw @s <%payText.sentTo%>
 }
 
 function transfer {
     # As the payer, with the receiver tagged xpeco.target and #amt set. Overpay is blocked here, before anything moves.
     function xpeco:total/compute
-    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s {translate:"xpeco.pay.insufficient",fallback:"Not enough experience."}
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s <%payText.insufficient%>
     execute store result storage xpeco:tmp amount int 1 run scoreboard players get #amt xpeco.tmp
     function xpeco:pay/move with storage xpeco:tmp
-    tellraw @s {translate:"xpeco.pay.sent",fallback:"Paid %s %s points.",with:[{selector:"@a[tag=xpeco.target,limit=1]"},{score:{name:"#amt",objective:"xpeco.tmp"}}]}
-    tellraw @a[tag=xpeco.target,limit=1] {translate:"xpeco.pay.received",fallback:"%s paid you %s points.",with:[{selector:"@s"},{score:{name:"#amt",objective:"xpeco.tmp"}}]}
+    tellraw @s <%payText.sent%>
+    tellraw @a[tag=xpeco.target,limit=1] <%payText.received%>
 }
 
 function move {
@@ -68,15 +71,17 @@ function to_name {
     # Credit goes through the pending ledger, so online and offline targets take the same path.
     $scoreboard players set #amt xpeco.tmp $(amount)
     function xpeco:total/compute
-    execute if score #amt xpeco.tmp matches ..0 run return run tellraw @s {text:"Amount must be positive."}
-    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s {text:"Not enough experience."}
+    execute if score #amt xpeco.tmp matches ..0 run return run tellraw @s <%payText.mustBePositive%>
+    execute if score @s xpeco.total < #amt xpeco.tmp run return run tellraw @s <%payText.notEnough%>
     $experience add @s -$(amount) points
     $scoreboard players add $(to) xpeco.pending $(amount)
-    $tellraw @s {text:"Paid $(to) $(amount) points."}
+    $tellraw @s <%payText.paidName%>
 }
 
-function tick minecraft:tick {
-    scoreboard players enable @a pay
-    scoreboard players set @a[scores={pay=..-1}] pay 0
-    execute as @a[scores={pay=1..}] at @s run function xpeco:pay/run
+predicate fired {
+    <%nonzero(['pay'])%>
+}
+
+function tick xpeco:tick {
+    execute as @a[predicate=xpeco:pay/fired] at @s run function xpeco:pay/run
 }

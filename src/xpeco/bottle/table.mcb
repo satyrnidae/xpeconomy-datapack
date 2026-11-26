@@ -75,7 +75,9 @@ function ensure {
     execute align xyz positioned ~0.5 ~ ~0.5 unless entity @e[type=minecraft:interaction,tag=xpeco.bottle.table,distance=..0.3] run summon minecraft:interaction ~ ~ ~ {width:1.1f,height:0.85f,response:true,Tags:["xpeco.bottle.table"]}
 }
 
-function tick minecraft:tick {
-    execute as @a[predicate=xpeco:bottle/table/ready] at @s run function xpeco:bottle/table/track
+function tick xpeco:tick {
+    # The entity only has to be there before the click, so the ray runs every other tick. The cleanup runs every tick: a
+    # leftover entity would swallow the click of a player who stopped sneaking, and the table would not open.
+    execute if score #n2 xpeco.tmp matches 0 as @a[predicate=xpeco:bottle/table/ready] at @s run function xpeco:bottle/table/track
     execute as @e[type=minecraft:interaction,tag=xpeco.bottle.table] at @s unless entity @a[predicate=xpeco:bottle/table/ready,distance=..6] run kill @s
 }
